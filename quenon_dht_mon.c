@@ -2,6 +2,9 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <stdlib.h>
+#include <stdio.h>
+
+#define APP_NAME "DHT monitor"
 
 typedef enum {
     EventTypeTick,
@@ -14,12 +17,13 @@ typedef struct {
 } PluginEvent;
 
 typedef struct {
-    int x;
-    int y;
-} PluginState;
+    float temp;
+    float hum;
+    char txtbuff[25];
+} PluginData;
 
 static void render_callback(Canvas* const canvas, void* ctx) {
-    const PluginState* plugin_state = acquire_mutex((ValueMutex*)ctx, 25);
+    PluginData* plugin_state = acquire_mutex((ValueMutex*)ctx, 25);
     if(plugin_state == NULL) {
         return;
     }
@@ -27,8 +31,13 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     canvas_draw_frame(canvas, 0, 0, 128, 64);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, plugin_state->x, plugin_state->y, AlignRight, AlignBottom, "Hello World");
+    snprintf(
+        plugin_state->txtbuff,
+        sizeof(plugin_state->txtbuff),
+        "Temp: %dC Hum: %d%%",
+        (uint8_t)plugin_state->temp,
+        (uint8_t)plugin_state->hum);
+    canvas_draw_str(canvas, 20, 35, plugin_state->txtbuff);
 
     release_mutex((ValueMutex*)ctx, plugin_state);
 }
@@ -40,21 +49,21 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
-static void hello_world_state_init(PluginState* const plugin_state) {
-    plugin_state->x = 50;
-    plugin_state->y = 30;
+static void hello_world_state_init(PluginData* const plugin_state) {
+    plugin_state->temp = -128;
+    plugin_state->hum = -128;
 }
 
-int32_t hello_world_app() {
+int32_t quenon_dht_app() {
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
 
-    PluginState* plugin_state = malloc(sizeof(PluginState));
+    PluginData* plugin_state = malloc(sizeof(PluginData));
 
     hello_world_state_init(plugin_state);
 
     ValueMutex state_mutex;
-    if(!init_mutex(&state_mutex, plugin_state, sizeof(PluginState))) {
-        FURI_LOG_E("Hello_world", "cannot create mutex\r\n");
+    if(!init_mutex(&state_mutex, plugin_state, sizeof(PluginData))) {
+        FURI_LOG_E(APP_NAME, "cannot create mutex\r\n");
         free(plugin_state);
         return 255;
     }
@@ -72,7 +81,7 @@ int32_t hello_world_app() {
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
-        PluginState* plugin_state = (PluginState*)acquire_mutex_block(&state_mutex);
+        PluginData* plugin_state = (PluginData*)acquire_mutex_block(&state_mutex);
 
         if(event_status == FuriStatusOk) {
             // press events
@@ -80,16 +89,16 @@ int32_t hello_world_app() {
                 if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
                     case InputKeyUp:
-                        plugin_state->y--;
+                        //  plugin_state->y--;
                         break;
                     case InputKeyDown:
-                        plugin_state->y++;
+                        //  plugin_state->y++;
                         break;
                     case InputKeyRight:
-                        plugin_state->x++;
+                        //   plugin_state->x++;
                         break;
                     case InputKeyLeft:
-                        plugin_state->x--;
+                        //  plugin_state->x--;
                         break;
                     case InputKeyOk:
                     case InputKeyBack:
@@ -99,7 +108,7 @@ int32_t hello_world_app() {
                 }
             }
         } else {
-            FURI_LOG_D("Hello_world", "FuriMessageQueue: event timeout");
+            FURI_LOG_D(APP_NAME, "FuriMessageQueue: event timeout");
             // event timeout
         }
 

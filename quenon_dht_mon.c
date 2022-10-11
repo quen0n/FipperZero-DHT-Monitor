@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "DHT.h"
+
 #define APP_NAME "DHT monitor"
 
 typedef enum {
@@ -17,9 +19,9 @@ typedef struct {
 } PluginEvent;
 
 typedef struct {
-    float temp;
-    float hum;
     char txtbuff[25];
+    DHT_sensor sensor;
+    DHT_data data;
 } PluginData;
 
 static void render_callback(Canvas* const canvas, void* ctx) {
@@ -27,6 +29,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     if(plugin_state == NULL) {
         return;
     }
+
+    plugin_state->data = DHT_getData(&plugin_state->sensor);
+
     // border around the edge of the screen
     canvas_draw_frame(canvas, 0, 0, 128, 64);
 
@@ -35,8 +40,8 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         plugin_state->txtbuff,
         sizeof(plugin_state->txtbuff),
         "Temp: %dC Hum: %d%%",
-        (uint8_t)plugin_state->temp,
-        (uint8_t)plugin_state->hum);
+        (int8_t)plugin_state->data.temp,
+        (int8_t)plugin_state->data.hum);
     canvas_draw_str(canvas, 20, 35, plugin_state->txtbuff);
 
     release_mutex((ValueMutex*)ctx, plugin_state);
@@ -50,8 +55,9 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
 }
 
 static void hello_world_state_init(PluginData* const plugin_state) {
-    plugin_state->temp = -128;
-    plugin_state->hum = -128;
+    plugin_state->sensor.DHT_Pin = gpio_ext_pa7;
+    plugin_state->sensor.pullUp = GpioPullUp;
+    plugin_state->sensor.type = DHT11;
 }
 
 int32_t quenon_dht_app() {

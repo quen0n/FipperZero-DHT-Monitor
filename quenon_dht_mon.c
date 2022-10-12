@@ -3,6 +3,7 @@
 #include <input/input.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "furi_hal_power.h"
 
 #include "DHT.h"
 
@@ -66,6 +67,10 @@ int32_t quenon_dht_app() {
     PluginData* plugin_state = malloc(sizeof(PluginData));
 
     hello_world_state_init(plugin_state);
+    bool last5VState = furi_hal_power_is_otg_enabled();
+    if(last5VState != true) {
+        furi_hal_power_enable_otg();
+    }
 
     ValueMutex state_mutex;
     if(!init_mutex(&state_mutex, plugin_state, sizeof(PluginData))) {
@@ -107,6 +112,7 @@ int32_t quenon_dht_app() {
                         //  plugin_state->x--;
                         break;
                     case InputKeyOk:
+                        break;
                     case InputKeyBack:
                         processing = false;
                         break;
@@ -120,6 +126,10 @@ int32_t quenon_dht_app() {
 
         view_port_update(view_port);
         release_mutex(&state_mutex, plugin_state);
+    }
+
+    if(last5VState != true) {
+        furi_hal_power_disable_otg();
     }
 
     view_port_enabled_set(view_port, false);

@@ -31,6 +31,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         return;
     }
 
+    if(!furi_hal_power_is_otg_enabled()) {
+        furi_hal_power_enable_otg();
+    }
     plugin_state->data = DHT_getData(&plugin_state->sensor);
 
     // border around the edge of the screen

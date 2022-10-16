@@ -19,36 +19,117 @@ typedef struct {
     InputEvent input;
 } PluginEvent;
 
+//Структура с данными плагина
 typedef struct {
-    char txtbuff[25];
-    DHT_sensor sensor;
-    DHT_data data;
+    char txtbuff[25]; //Буффер для печати строк на экране
+    bool last_OTG_State; //Состояние OTG до запуска приложения
+    uint8_t sensors_count; // Количество загруженных датчиков
+    DHT_sensor sensors[8]; //Сохранённые датчики
+    DHT_data data; //Инфа из датчика
 } PluginData;
 
+/* 
+Функция инициализации портов ввода/вывода датчиков
+*/
+void DHT_sensors_init(PluginData* const pd) {
+    //Включение 5V если на порту 1 FZ его нет
+    if(furi_hal_power_is_otg_enabled() != true) {
+        furi_hal_power_enable_otg();
+    }
+
+    //Настройка GPIO загруженных датчиков
+    for(uint8_t i = 0; i < pd->sensors_count; i++) {
+        //Высокий уровень по умолчанию
+        furi_hal_gpio_write(&pd->sensors[i].DHT_Pin, true);
+        //Режим работы - OpenDrain, подтяжка включается на всякий случай
+        furi_hal_gpio_init(
+            &pd->sensors[i].DHT_Pin, //Порт FZ
+            GpioModeOutputOpenDrain, //Режим работы - открытый сток
+            GpioPullUp, //Принудительная подтяжка линии данных к питанию
+            GpioSpeedVeryHigh); //Скорость работы - максимальная
+    }
+}
+
+/* 
+Функция деинициализации портов ввода/вывода датчиков
+*/
+void DHT_sensors_deinit(PluginData* const pd) {
+    //Возврат исходного состояния 5V
+    if(pd->last_OTG_State != true) {
+        furi_hal_power_disable_otg();
+    }
+
+    //Настройка портов на вход
+    for(uint8_t i = 0; i < pd->sensors_count; i++) {
+        //Режим работы - OpenDrain, подтяжка включается на всякий случай
+        furi_hal_gpio_init(
+            &pd->sensors[i].DHT_Pin, //Порт FZ
+            GpioModeInput, //Режим работы - вход
+            GpioPullNo, //Отключение подтяжки
+            GpioSpeedLow); //Скорость работы - низкая
+        //Установка низкого уровня
+        furi_hal_gpio_write(&pd->sensors[i].DHT_Pin, false);
+    }
+}
+
+/* 
+Функция сохранения датчиков в файл
+Возвращает количество сохранённых датчиков
+*/
+uint8_t DHT_sensors_save(void) {
+    return 0;
+}
+
+/* 
+Функция загрузки датчиков из файла
+Возвращает истину, если был загружен хотя бы 1 датчик
+*/
+bool DHT_sensors_load(PluginData* const pd) {
+    //Обнуление количества датчиков
+    pd->sensors_count = 0;
+    //Очистка предыдущих датчиков
+    memset(pd->sensors, 0, sizeof(pd->sensors));
+
+    //Тут будет загрузка и парсинг с SD-карты
+
+    //Типа получил какой-то датчик, сохранение
+    DHT_sensor s = {.DHT_Pin = gpio_ext_pa7, .type = DHT11, .pullUp = GpioPullUp};
+    pd->sensors[0] = s;
+    pd->sensors_count++;
+
+    //Инициализация портов датчиков
+    if(pd->sensors_count != 0) {
+        DHT_sensors_init(pd);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 static void render_callback(Canvas* const canvas, void* ctx) {
-    PluginData* plugin_state = acquire_mutex((ValueMutex*)ctx, 25);
-    if(plugin_state == NULL) {
+    PluginData* plugin_data = acquire_mutex((ValueMutex*)ctx, 25);
+    if(plugin_data == NULL) {
         return;
     }
 
     if(!furi_hal_power_is_otg_enabled()) {
         furi_hal_power_enable_otg();
     }
-    plugin_state->data = DHT_getData(&plugin_state->sensor);
+    plugin_data->data = DHT_getData(&plugin_data->sensors[0]);
 
     // border around the edge of the screen
     canvas_draw_frame(canvas, 0, 0, 128, 64);
 
     canvas_set_font(canvas, FontPrimary);
     snprintf(
-        plugin_state->txtbuff,
-        sizeof(plugin_state->txtbuff),
+        plugin_data->txtbuff,
+        sizeof(plugin_data->txtbuff),
         "Temp: %dC Hum: %d%%",
-        (int8_t)plugin_state->data.temp,
-        (int8_t)plugin_state->data.hum);
-    canvas_draw_str(canvas, 20, 35, plugin_state->txtbuff);
+        (int8_t)plugin_data->data.temp,
+        (int8_t)plugin_data->data.hum);
+    canvas_draw_str(canvas, 20, 35, plugin_data->txtbuff);
 
-    release_mutex((ValueMutex*)ctx, plugin_state);
+    release_mutex((ValueMutex*)ctx, plugin_data);
 }
 
 static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
@@ -58,27 +139,19 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
-static void hello_world_state_init(PluginData* const plugin_state) {
-    plugin_state->sensor.DHT_Pin = gpio_ext_pa7;
-    plugin_state->sensor.pullUp = GpioPullUp;
-    plugin_state->sensor.type = DHT11;
-}
-
-int32_t quenon_dht_app() {
+int32_t quenon_dht_mon_app() {
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
+    PluginData* plugin_data = malloc(sizeof(PluginData));
 
-    PluginData* plugin_state = malloc(sizeof(PluginData));
+    //Сохранение состояния наличия 5V на порту 1 FZ
+    plugin_data->last_OTG_State = furi_hal_power_is_otg_enabled();
 
-    hello_world_state_init(plugin_state);
-    bool last5VState = furi_hal_power_is_otg_enabled();
-    if(last5VState != true) {
-        furi_hal_power_enable_otg();
-    }
+    DHT_sensors_load(plugin_data);
 
     ValueMutex state_mutex;
-    if(!init_mutex(&state_mutex, plugin_state, sizeof(PluginData))) {
+    if(!init_mutex(&state_mutex, plugin_data, sizeof(PluginData))) {
         FURI_LOG_E(APP_NAME, "cannot create mutex\r\n");
-        free(plugin_state);
+        free(plugin_data);
         return 255;
     }
 
@@ -95,7 +168,7 @@ int32_t quenon_dht_app() {
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
 
-        PluginData* plugin_state = (PluginData*)acquire_mutex_block(&state_mutex);
+        PluginData* plugin_data = (PluginData*)acquire_mutex_block(&state_mutex);
 
         if(event_status == FuriStatusOk) {
             // press events
@@ -103,16 +176,16 @@ int32_t quenon_dht_app() {
                 if(event.input.type == InputTypePress) {
                     switch(event.input.key) {
                     case InputKeyUp:
-                        //  plugin_state->y--;
+                        //  plugin_data->y--;
                         break;
                     case InputKeyDown:
-                        //  plugin_state->y++;
+                        //  plugin_data->y++;
                         break;
                     case InputKeyRight:
-                        //   plugin_state->x++;
+                        //   plugin_data->x++;
                         break;
                     case InputKeyLeft:
-                        //  plugin_state->x--;
+                        //  plugin_data->x--;
                         break;
                     case InputKeyOk:
                         break;
@@ -128,12 +201,11 @@ int32_t quenon_dht_app() {
         }
 
         view_port_update(view_port);
-        release_mutex(&state_mutex, plugin_state);
+        release_mutex(&state_mutex, plugin_data);
     }
 
-    if(last5VState != true) {
-        furi_hal_power_disable_otg();
-    }
+    DHT_sensors_save();
+    DHT_sensors_deinit(plugin_data);
 
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
@@ -144,3 +216,6 @@ int32_t quenon_dht_app() {
 
     return 0;
 }
+//TODO: Освободить порты ввода/вывода перед закрытием приложения
+//TODO: Загрузка и сохранение датчиков на SD-карту
+//TODO: Добавление датчика из меню

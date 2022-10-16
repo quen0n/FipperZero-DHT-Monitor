@@ -5,12 +5,6 @@
 #define getLine() furi_hal_gpio_read(&sensor->DHT_Pin)
 #define Delay(d) furi_delay_ms(d)
 
-static void gpio_init(const DHT_sensor* sensor) {
-    furi_hal_gpio_write(&sensor->DHT_Pin, true);
-    furi_hal_gpio_init(
-        &sensor->DHT_Pin, GpioModeOutputOpenDrain, sensor->pullUp, GpioSpeedVeryHigh);
-}
-
 DHT_data DHT_getData(DHT_sensor* sensor) {
     DHT_data data = {-128.0f, -128.0f};
 
@@ -34,12 +28,10 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
     sensor->lastPollingTime = furi_get_tick() + 1;
 #endif
 
-    /* Запрос данных у датчика */
-    gpio_init(sensor);
     //Опускание линии данных на 18 мс
     lineDown();
     Delay(18);
-    //Подъём линии, перевод порта "на вход"
+    //Подъём линии
     lineUp();
 #ifdef DHT_IRQ_CONTROL
     //Выключение прерываний, чтобы ничто не мешало обработке данных

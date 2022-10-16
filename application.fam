@@ -2,7 +2,7 @@ App(
     appid="quenon_dht_mon",
     name="DHT monitor",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="quenon_dht_app",
+    entry_point="quenon_dht_mon_app",
     cdefines=["QUENON_DHT_MON"],
     requires=[
         "gui",

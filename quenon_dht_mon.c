@@ -93,7 +93,7 @@ bool DHT_sensors_load(PluginData* const pd) {
     //Тут будет загрузка и парсинг с SD-карты
 
     //Типа получил какой-то датчик, сохранение
-    DHT_sensor s = {.DHT_Pin = gpio_ext_pa7, .type = DHT11};
+    DHT_sensor s = {.name = "Room", .DHT_Pin = gpio_ext_pa7, .type = DHT11};
     pd->sensors[0] = s;
     pd->sensors_count++;
 
@@ -124,10 +124,11 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     snprintf(
         plugin_data->txtbuff,
         sizeof(plugin_data->txtbuff),
-        "Temp: %dC Hum: %d%%",
+        "%s: %dC/%d%%",
+        plugin_data->sensors[0].name,
         (int8_t)plugin_data->data.temp,
         (int8_t)plugin_data->data.hum);
-    canvas_draw_str(canvas, 20, 35, plugin_data->txtbuff);
+    canvas_draw_str(canvas, 2, 10, plugin_data->txtbuff);
 
     release_mutex((ValueMutex*)ctx, plugin_data);
 }

@@ -21,7 +21,8 @@ typedef enum { DHT11, DHT22 } DHT_type;
 
 /* Структура объекта датчика */
 typedef struct {
-    GpioPin DHT_Pin; //Порт и пин датчика (GPIO_PIN_0, GPIO_PIN_1, etc)
+    char name[11];
+    GpioPin DHT_Pin; //Порт и пин датчика
     DHT_type type; //Тип датчика (DHT11 или DHT22)
 
 //Контроль частоты опроса датчика. Значения не заполнять!

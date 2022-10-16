@@ -23,7 +23,6 @@ typedef enum { DHT11, DHT22 } DHT_type;
 typedef struct {
     GpioPin DHT_Pin; //Порт и пин датчика (GPIO_PIN_0, GPIO_PIN_1, etc)
     DHT_type type; //Тип датчика (DHT11 или DHT22)
-    uint8_t pullUp; //Нужна ли подтяжка линии данных к питанию (GpioPullNo - нет, GpioPullUp - да)
 
 //Контроль частоты опроса датчика. Значения не заполнять!
 #if DHT_POLLING_CONTROL == 1

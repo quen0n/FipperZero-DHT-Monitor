@@ -93,7 +93,7 @@ bool DHT_sensors_load(PluginData* const pd) {
     //Тут будет загрузка и парсинг с SD-карты
 
     //Типа получил какой-то датчик, сохранение
-    DHT_sensor s = {.DHT_Pin = gpio_ext_pa7, .type = DHT11, .pullUp = GpioPullUp};
+    DHT_sensor s = {.DHT_Pin = gpio_ext_pa7, .type = DHT11};
     pd->sensors[0] = s;
     pd->sensors_count++;
 

@@ -6,8 +6,11 @@
 #include "furi_hal_power.h"
 
 #include "DHT.h"
+#include <toolbox/stream/file_stream.h>
 
 #define APP_NAME "DHT monitor"
+#define APP_PATH_FOLDER "/ext/DHT monitor"
+#define APP_FILENAME "sensors.txt"
 
 typedef enum {
     EventTypeTick,
@@ -19,15 +22,45 @@ typedef struct {
     InputEvent input;
 } PluginEvent;
 
+typedef struct {
+    const uint8_t name;
+    const GpioPin* pin;
+} GpioItem;
+
+static const GpioItem gpio_item[] = {
+    {2, &gpio_ext_pa7},
+    {3, &gpio_ext_pa6},
+    {4, &gpio_ext_pa4},
+    {5, &gpio_ext_pb3},
+    {6, &gpio_ext_pb2},
+    {7, &gpio_ext_pc3},
+    {15, &gpio_ext_pc1},
+    {16, &gpio_ext_pc0},
+};
+
 //Структура с данными плагина
 typedef struct {
     char txtbuff[25]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
+    Storage* storage; //Хранилище датчиков
+    Stream* file_stream; //Поток файла с датчиками
     uint8_t sensors_count; // Количество загруженных датчиков
     DHT_sensor sensors[8]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
 } PluginData;
 
+/* Функция конвертации GPIO в его номер FZ
+Принимает GPIO
+Возвращает номер порта на корпусе FZ
+*/
+static uint8_t gpio_to_int(GpioPin gp) {
+    for(uint8_t i = 0; i < 8; i++) {
+        if(gpio_item[i].pin->pin == gp.pin && gpio_item[i].pin->port == gp.port) {
+            return gpio_item[i].name;
+        }
+    }
+    return 255;
+}
 /* 
 Функция инициализации портов ввода/вывода датчиков
 */
@@ -76,10 +109,38 @@ void DHT_sensors_deinit(PluginData* const pd) {
 Функция сохранения датчиков в файл
 Возвращает количество сохранённых датчиков
 */
-uint8_t DHT_sensors_save(void) {
+uint8_t DHT_sensors_save(PluginData* const pd) {
+    //Выделение памяти для потока
+    pd->file_stream = file_stream_alloc(pd->storage);
+    //Переменная пути к файлу
+    char filepath[sizeof(APP_PATH_FOLDER) + sizeof(APP_FILENAME)] = {0};
+    //Составление пути к файлу
+    strcpy(filepath, APP_PATH_FOLDER);
+    strcat(filepath, "/");
+    strcat(filepath, APP_FILENAME);
+
+    //Открытие потока. Если поток открылся, то выполнение сохранения датчиков
+    if(file_stream_open(pd->file_stream, filepath, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
+        const char template[] =
+            "#DHT monitor sensors files\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0,DHT22 - 1\n#GPIO - connection port.May being 2, 3, 4, 5, 6, 7, 15, 16\n";
+        stream_write(pd->file_stream, (uint8_t*)template, strlen(template));
+        //Сохранение датчиков
+        for(uint8_t i = 0; i < pd->sensors_count; i++) {
+            stream_write_format(
+                pd->file_stream,
+                "%s %d %d\n",
+                pd->sensors[i].name,
+                pd->sensors[i].type,
+                gpio_to_int(pd->sensors[i].DHT_Pin));
+        }
+    } else {
+        //TODO: печать ошибки на экран
+        FURI_LOG_E(APP_NAME, "cannot open of create sensors file\r\n");
+    }
+    stream_free(pd->file_stream);
+
     return 0;
 }
-
 /* 
 Функция загрузки датчиков из файла
 Возвращает истину, если был загружен хотя бы 1 датчик
@@ -91,7 +152,14 @@ bool DHT_sensors_load(PluginData* const pd) {
     memset(pd->sensors, 0, sizeof(pd->sensors));
 
     //Тут будет загрузка и парсинг с SD-карты
+    // Storage* storage = furi_record_open(RECORD_STORAGE);
+    // storage_common_mkdir(storage, "/ext/DHT_monitor/sensors");
+    // Stream* stream = file_stream_alloc(storage);
 
+    // if(!file_stream_open(stream, APP_PATH_FOLDER, FSAM_READ, FSOM_OPEN_ALWAYS)) {
+    //     FURI_LOG_D(APP_NAME, "Cannot open or create file \"%s\"", APP_PATH_FOLDER);
+    // } else {
+    // }
     //Типа получил какой-то датчик, сохранение
     DHT_sensor s = {.name = "Room", .DHT_Pin = gpio_ext_pa7, .type = DHT11};
     pd->sensors[0] = s;
@@ -165,6 +233,10 @@ int32_t quenon_dht_mon_app() {
     Gui* gui = furi_record_open("gui");
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    plugin_data->storage = furi_record_open(RECORD_STORAGE);
+    storage_common_mkdir(plugin_data->storage, APP_PATH_FOLDER);
+    plugin_data->file_stream = file_stream_alloc(plugin_data->storage);
+
     PluginEvent event;
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
@@ -205,12 +277,13 @@ int32_t quenon_dht_mon_app() {
         release_mutex(&state_mutex, plugin_data);
     }
 
-    DHT_sensors_save();
+    DHT_sensors_save(plugin_data);
     DHT_sensors_deinit(plugin_data);
 
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close("gui");
+    furi_record_close(RECORD_STORAGE);
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
     delete_mutex(&state_mutex);

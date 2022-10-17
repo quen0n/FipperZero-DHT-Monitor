@@ -30,13 +30,15 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
 
     //Опускание линии данных на 18 мс
     lineDown();
-    Delay(18);
-    //Подъём линии
-    lineUp();
 #ifdef DHT_IRQ_CONTROL
     //Выключение прерываний, чтобы ничто не мешало обработке данных
     __disable_irq();
 #endif
+    Delay(18);
+
+    //Подъём линии
+    lineUp();
+
     /* Ожидание ответа от датчика */
     uint16_t timeout = 0;
     //Ожидание спада
@@ -49,8 +51,8 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
             //Если датчик не отозвался, значит его точно нет
             //Обнуление последнего удачного значения, чтобы
             //не получать фантомные значения
-            sensor->lastHum = 2;
-            sensor->lastTemp = 2;
+            sensor->lastHum = -128.0f;
+            sensor->lastTemp = -128.0f;
 
             return data;
         }
@@ -67,8 +69,8 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
                 //Если датчик не отозвался, значит его точно нет
                 //Обнуление последнего удачного значения, чтобы
                 //не получать фантомные значения
-                sensor->lastHum = 3;
-                sensor->lastTemp = 3;
+                sensor->lastHum = -128.0f;
+                sensor->lastTemp = -128.0f;
 
                 return data;
             }
@@ -82,6 +84,11 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
 #ifdef DHT_IRQ_CONTROL
             __enable_irq();
 #endif
+            //Если датчик не отозвался, значит его точно нет
+            //Обнуление последнего удачного значения, чтобы
+            //не получать фантомные значения
+            sensor->lastHum = -128.0f;
+            sensor->lastTemp = -128.0f;
             return data;
         }
     }

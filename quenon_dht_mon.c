@@ -36,7 +36,7 @@ static const GpioItem gpio_item[] = {
     {7, &gpio_ext_pc3},
     {15, &gpio_ext_pc1},
     {16, &gpio_ext_pc0},
-};
+    {17, &ibutton_gpio}};
 
 //Структура с данными плагина
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
     Storage* storage; //Хранилище датчиков
     Stream* file_stream; //Поток файла с датчиками
     uint8_t sensors_count; // Количество загруженных датчиков
-    DHT_sensor sensors[8]; //Сохранённые датчики
+    DHT_sensor sensors[9]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
 } PluginData;
 
@@ -54,7 +54,7 @@ typedef struct {
 Возвращает номер порта на корпусе FZ
 */
 static uint8_t gpio_to_int(GpioPin* gp) {
-    for(uint8_t i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < 9; i++) {
         if(gpio_item[i].pin->pin == gp->pin && gpio_item[i].pin->port == gp->port) {
             return gpio_item[i].name;
         }
@@ -67,7 +67,7 @@ static uint8_t gpio_to_int(GpioPin* gp) {
 Возвращает порт GPIO 
 */
 const GpioPin* int_to_gpio(uint8_t name) {
-    for(uint8_t i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < 9; i++) {
         if(gpio_item[i].name == name) {
             return gpio_item[i].pin;
         }
@@ -242,16 +242,21 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         }
         for(uint8_t i = 0; i < plugin_data->sensors_count; i++) {
             plugin_data->data = DHT_getData(&plugin_data->sensors[i]);
-            char name[11];
+            char name[11] = {0};
             memcpy(name, plugin_data->sensors[i].name, 10);
 
-            snprintf(
-                plugin_data->txtbuff,
-                sizeof(plugin_data->txtbuff),
-                "%s: %2.1f*C / %d%%",
-                name,
-                (double)plugin_data->data.temp,
-                (int8_t)plugin_data->data.hum);
+            if(plugin_data->data.hum == -128.0f && plugin_data->data.temp == -128.0f) {
+                snprintf(plugin_data->txtbuff, sizeof(plugin_data->txtbuff), "%s: timeout", name);
+            } else {
+                snprintf(
+                    plugin_data->txtbuff,
+                    sizeof(plugin_data->txtbuff),
+                    "%s: %2.1f*C / %d%%",
+                    name,
+                    (double)plugin_data->data.temp,
+                    (int8_t)plugin_data->data.hum);
+            }
+
             canvas_draw_str(canvas, 2, 10 + 10 * i, plugin_data->txtbuff);
         }
 

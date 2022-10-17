@@ -53,9 +53,9 @@ typedef struct {
 Принимает GPIO
 Возвращает номер порта на корпусе FZ
 */
-static uint8_t gpio_to_int(GpioPin gp) {
+static uint8_t gpio_to_int(GpioPin* gp) {
     for(uint8_t i = 0; i < 8; i++) {
-        if(gpio_item[i].pin->pin == gp.pin && gpio_item[i].pin->port == gp.port) {
+        if(gpio_item[i].pin->pin == gp->pin && gpio_item[i].pin->port == gp->port) {
             return gpio_item[i].name;
         }
     }
@@ -78,7 +78,7 @@ const GpioPin* int_to_gpio(uint8_t name) {
 /* 
 Функция инициализации портов ввода/вывода датчиков
 */
-void DHT_sensors_init(PluginData* const pd) {
+void DHT_sensors_init(PluginData* pd) {
     //Включение 5V если на порту 1 FZ его нет
     if(furi_hal_power_is_otg_enabled() != true) {
         furi_hal_power_enable_otg();
@@ -100,7 +100,7 @@ void DHT_sensors_init(PluginData* const pd) {
 /* 
 Функция деинициализации портов ввода/вывода датчиков
 */
-void DHT_sensors_deinit(PluginData* const pd) {
+void DHT_sensors_deinit(PluginData* pd) {
     //Возврат исходного состояния 5V
     if(pd->last_OTG_State != true) {
         furi_hal_power_disable_otg();
@@ -108,7 +108,6 @@ void DHT_sensors_deinit(PluginData* const pd) {
 
     //Настройка портов на вход
     for(uint8_t i = 0; i < pd->sensors_count; i++) {
-        //Режим работы - OpenDrain, подтяжка включается на всякий случай
         furi_hal_gpio_init(
             &pd->sensors[i].DHT_Pin, //Порт FZ
             GpioModeInput, //Режим работы - вход
@@ -123,7 +122,7 @@ void DHT_sensors_deinit(PluginData* const pd) {
 Функция сохранения датчиков в файл
 Возвращает количество сохранённых датчиков
 */
-uint8_t DHT_sensors_save(PluginData* const pd) {
+uint8_t DHT_sensors_save(PluginData* pd) {
     //Выделение памяти для потока
     pd->file_stream = file_stream_alloc(pd->storage);
     //Переменная пути к файлу
@@ -145,7 +144,7 @@ uint8_t DHT_sensors_save(PluginData* const pd) {
                 "%s %d %d\n",
                 pd->sensors[i].name,
                 pd->sensors[i].type,
-                gpio_to_int(pd->sensors[i].DHT_Pin));
+                gpio_to_int(&pd->sensors[i].DHT_Pin));
         }
     } else {
         //TODO: печать ошибки на экран
@@ -159,7 +158,7 @@ uint8_t DHT_sensors_save(PluginData* const pd) {
 Функция загрузки датчиков из файла
 Возвращает истину, если был загружен хотя бы 1 датчик
 */
-bool DHT_sensors_load(PluginData* const pd) {
+bool DHT_sensors_load(PluginData* pd) {
     //Обнуление количества датчиков
     pd->sensors_count = 0;
     //Очистка предыдущих датчиков
@@ -209,7 +208,7 @@ bool DHT_sensors_load(PluginData* const pd) {
             if(type != DHT11 && type != DHT22) continue;
             s.type = type;
             s.DHT_Pin = *int_to_gpio(port);
-            //if(s.DHT_Pin.port == NULL) continue;
+            if(s.DHT_Pin.port == NULL) continue;
 
             pd->sensors[pd->sensors_count] = s;
             pd->sensors_count++;
@@ -243,11 +242,14 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         }
         for(uint8_t i = 0; i < plugin_data->sensors_count; i++) {
             plugin_data->data = DHT_getData(&plugin_data->sensors[i]);
+            char name[11];
+            memcpy(name, plugin_data->sensors[i].name, 10);
+
             snprintf(
                 plugin_data->txtbuff,
                 sizeof(plugin_data->txtbuff),
                 "%s: %dC/%d%%",
-                plugin_data->sensors[0].name,
+                name,
                 (int8_t)plugin_data->data.temp,
                 (int8_t)plugin_data->data.hum);
             canvas_draw_str(canvas, 2, 10 + 10 * i, plugin_data->txtbuff);
@@ -271,9 +273,6 @@ int32_t quenon_dht_mon_app() {
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
     PluginData* plugin_data = malloc(sizeof(PluginData));
 
-    //Сохранение состояния наличия 5V на порту 1 FZ
-    plugin_data->last_OTG_State = furi_hal_power_is_otg_enabled();
-
     ValueMutex state_mutex;
     if(!init_mutex(&state_mutex, plugin_data, sizeof(PluginData))) {
         FURI_LOG_E(APP_NAME, "cannot create mutex\r\n");
@@ -290,10 +289,15 @@ int32_t quenon_dht_mon_app() {
     Gui* gui = furi_record_open("gui");
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    //Подготовка хранилища
     plugin_data->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(plugin_data->storage, APP_PATH_FOLDER);
     plugin_data->file_stream = file_stream_alloc(plugin_data->storage);
 
+    //Сохранение состояния наличия 5V на порту 1 FZ
+    plugin_data->last_OTG_State = furi_hal_power_is_otg_enabled();
+
+    //Загрузка датчиков с SD-карты
     DHT_sensors_load(plugin_data);
 
     PluginEvent event;
@@ -336,7 +340,10 @@ int32_t quenon_dht_mon_app() {
         release_mutex(&state_mutex, plugin_data);
     }
 
-    DHT_sensors_save(plugin_data);
+    //Сохранение датчиков на SD-карту перед выходом
+    //сохранение по необходимости DHT_sensors_save(plugin_data);
+
+    //Деинициализация портов датчиков
     DHT_sensors_deinit(plugin_data);
 
     view_port_enabled_set(view_port, false);
@@ -349,6 +356,4 @@ int32_t quenon_dht_mon_app() {
 
     return 0;
 }
-//TODO: Освободить порты ввода/вывода перед закрытием приложения
-//TODO: Загрузка и сохранение датчиков на SD-карту
 //TODO: Добавление датчика из меню

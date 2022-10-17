@@ -61,6 +61,20 @@ static uint8_t gpio_to_int(GpioPin gp) {
     }
     return 255;
 }
+
+/* Функция конвертации порта FZ в порт GPIO 
+Принимает номер порта на корпусе FZ
+Возвращает порт GPIO 
+*/
+const GpioPin* int_to_gpio(uint8_t name) {
+    for(uint8_t i = 0; i < 8; i++) {
+        if(gpio_item[i].name == name) {
+            return gpio_item[i].pin;
+        }
+    }
+    return NULL;
+}
+
 /* 
 Функция инициализации портов ввода/вывода датчиков
 */
@@ -151,19 +165,58 @@ bool DHT_sensors_load(PluginData* const pd) {
     //Очистка предыдущих датчиков
     memset(pd->sensors, 0, sizeof(pd->sensors));
 
-    //Тут будет загрузка и парсинг с SD-карты
-    // Storage* storage = furi_record_open(RECORD_STORAGE);
-    // storage_common_mkdir(storage, "/ext/DHT_monitor/sensors");
-    // Stream* stream = file_stream_alloc(storage);
+    //Открытие файла на SD-карте
+    //Выделение памяти для потока
+    pd->file_stream = file_stream_alloc(pd->storage);
+    //Переменная пути к файлу
+    char filepath[sizeof(APP_PATH_FOLDER) + sizeof(APP_FILENAME)] = {0};
+    //Составление пути к файлу
+    strcpy(filepath, APP_PATH_FOLDER);
+    strcat(filepath, "/");
+    strcat(filepath, APP_FILENAME);
+    //Открытие потока к файлу
+    if(!file_stream_open(pd->file_stream, filepath, FSAM_READ_WRITE, FSOM_OPEN_ALWAYS)) {
+        //Если файл отсутствует, то выход
+        FURI_LOG_E(APP_NAME, "Missing sensors file\r\n");
+        return false;
+    }
+    //Вычисление размера файла
+    size_t file_size = stream_size(pd->file_stream);
+    if(file_size == (size_t)0) {
+        //Выход если файл пустой
+        FURI_LOG_E(APP_NAME, "Sensors file is empty\r\n");
+        return false;
+    }
 
-    // if(!file_stream_open(stream, APP_PATH_FOLDER, FSAM_READ, FSOM_OPEN_ALWAYS)) {
-    //     FURI_LOG_D(APP_NAME, "Cannot open or create file \"%s\"", APP_PATH_FOLDER);
-    // } else {
-    // }
-    //Типа получил какой-то датчик, сохранение
-    DHT_sensor s = {.name = "Room", .DHT_Pin = gpio_ext_pa7, .type = DHT11};
-    pd->sensors[0] = s;
-    pd->sensors_count++;
+    //Выделение памяти под загрузки файла
+    uint8_t* file_buf = malloc(file_size);
+    //Опустошение буфера файла
+    memset(file_buf, 0, file_size);
+    //Загрузка файла
+    if(stream_read(pd->file_stream, file_buf, file_size) != file_size) {
+        //Выход при ошибке чтения
+        FURI_LOG_E(APP_NAME, "Error reading sensor file\r\n");
+        return false;
+    }
+    //Построчное чтение файла
+    char* line = strtok((char*)file_buf, "\n");
+    while(line != NULL) {
+        if(line[0] != '#') {
+            DHT_sensor s = {0};
+            int type, port;
+            sscanf(line, "%s %d %d", s.name, &type, &port);
+            //Проверка правильности
+            if(type != DHT11 && type != DHT22) continue;
+            s.type = type;
+            s.DHT_Pin = *int_to_gpio(port);
+            //if(s.DHT_Pin.port == NULL) continue;
+
+            pd->sensors[pd->sensors_count] = s;
+            pd->sensors_count++;
+        }
+        line = strtok((char*)NULL, "\n");
+    }
+    stream_free(pd->file_stream);
 
     //Инициализация портов датчиков
     if(pd->sensors_count != 0) {
@@ -172,6 +225,7 @@ bool DHT_sensors_load(PluginData* const pd) {
     } else {
         return false;
     }
+    return false;
 }
 
 static void render_callback(Canvas* const canvas, void* ctx) {
@@ -179,24 +233,29 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     if(plugin_data == NULL) {
         return;
     }
-
-    if(!furi_hal_power_is_otg_enabled()) {
-        furi_hal_power_enable_otg();
-    }
-    plugin_data->data = DHT_getData(&plugin_data->sensors[0]);
-
     // border around the edge of the screen
     canvas_draw_frame(canvas, 0, 0, 128, 64);
-
     canvas_set_font(canvas, FontPrimary);
-    snprintf(
-        plugin_data->txtbuff,
-        sizeof(plugin_data->txtbuff),
-        "%s: %dC/%d%%",
-        plugin_data->sensors[0].name,
-        (int8_t)plugin_data->data.temp,
-        (int8_t)plugin_data->data.hum);
-    canvas_draw_str(canvas, 2, 10, plugin_data->txtbuff);
+
+    if(plugin_data->sensors_count > 0) {
+        if(!furi_hal_power_is_otg_enabled()) {
+            furi_hal_power_enable_otg();
+        }
+        for(uint8_t i = 0; i < plugin_data->sensors_count; i++) {
+            plugin_data->data = DHT_getData(&plugin_data->sensors[i]);
+            snprintf(
+                plugin_data->txtbuff,
+                sizeof(plugin_data->txtbuff),
+                "%s: %dC/%d%%",
+                plugin_data->sensors[0].name,
+                (int8_t)plugin_data->data.temp,
+                (int8_t)plugin_data->data.hum);
+            canvas_draw_str(canvas, 2, 10 + 10 * i, plugin_data->txtbuff);
+        }
+
+    } else {
+        canvas_draw_str(canvas, 2, 10, "Sensors not found");
+    }
 
     release_mutex((ValueMutex*)ctx, plugin_data);
 }
@@ -214,8 +273,6 @@ int32_t quenon_dht_mon_app() {
 
     //Сохранение состояния наличия 5V на порту 1 FZ
     plugin_data->last_OTG_State = furi_hal_power_is_otg_enabled();
-
-    DHT_sensors_load(plugin_data);
 
     ValueMutex state_mutex;
     if(!init_mutex(&state_mutex, plugin_data, sizeof(PluginData))) {
@@ -236,6 +293,8 @@ int32_t quenon_dht_mon_app() {
     plugin_data->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(plugin_data->storage, APP_PATH_FOLDER);
     plugin_data->file_stream = file_stream_alloc(plugin_data->storage);
+
+    DHT_sensors_load(plugin_data);
 
     PluginEvent event;
     for(bool processing = true; processing;) {

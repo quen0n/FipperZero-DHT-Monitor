@@ -36,7 +36,7 @@ static const GpioItem gpio_item[] = {
     {7, &gpio_ext_pc3},
     {15, &gpio_ext_pc1},
     {16, &gpio_ext_pc0},
-    {17, &ibutton_gpio}};
+};
 
 //Структура с данными плагина
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
     Storage* storage; //Хранилище датчиков
     Stream* file_stream; //Поток файла с датчиками
     uint8_t sensors_count; // Количество загруженных датчиков
-    DHT_sensor sensors[9]; //Сохранённые датчики
+    DHT_sensor sensors[8]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
 } PluginData;
 
@@ -54,7 +54,7 @@ typedef struct {
 Возвращает номер порта на корпусе FZ
 */
 static uint8_t gpio_to_int(GpioPin* gp) {
-    for(uint8_t i = 0; i < 9; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
         if(gpio_item[i].pin->pin == gp->pin && gpio_item[i].pin->port == gp->port) {
             return gpio_item[i].name;
         }
@@ -67,7 +67,7 @@ static uint8_t gpio_to_int(GpioPin* gp) {
 Возвращает порт GPIO 
 */
 const GpioPin* int_to_gpio(uint8_t name) {
-    for(uint8_t i = 0; i < 9; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
         if(gpio_item[i].name == name) {
             return gpio_item[i].pin;
         }
@@ -205,13 +205,12 @@ bool DHT_sensors_load(PluginData* pd) {
             int type, port;
             sscanf(line, "%s %d %d", s.name, &type, &port);
             //Проверка правильности
-            if(type != DHT11 && type != DHT22) continue;
-            s.type = type;
-            s.DHT_Pin = *int_to_gpio(port);
-            if(s.DHT_Pin.port == NULL) continue;
-
-            pd->sensors[pd->sensors_count] = s;
-            pd->sensors_count++;
+            if((type == DHT11 || type == DHT22) && (int_to_gpio(port) != NULL)) {
+                s.type = type;
+                s.DHT_Pin = *int_to_gpio(port);
+                pd->sensors[pd->sensors_count] = s;
+                pd->sensors_count++;
+            }
         }
         line = strtok((char*)NULL, "\n");
     }

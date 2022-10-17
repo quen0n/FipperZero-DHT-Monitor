@@ -40,7 +40,7 @@ static const GpioItem gpio_item[] = {
 
 //Структура с данными плагина
 typedef struct {
-    char txtbuff[25]; //Буффер для печати строк на экране
+    char txtbuff[30]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
     Storage* storage; //Хранилище датчиков
     Stream* file_stream; //Поток файла с датчиками
@@ -248,9 +248,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
             snprintf(
                 plugin_data->txtbuff,
                 sizeof(plugin_data->txtbuff),
-                "%s: %dC/%d%%",
+                "%s: %2.1f*C / %d%%",
                 name,
-                (int8_t)plugin_data->data.temp,
+                (double)plugin_data->data.temp,
                 (int8_t)plugin_data->data.hum);
             canvas_draw_str(canvas, 2, 10 + 10 * i, plugin_data->txtbuff);
         }

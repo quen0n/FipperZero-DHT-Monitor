@@ -135,7 +135,7 @@ uint8_t DHT_sensors_save(PluginData* pd) {
     //Открытие потока. Если поток открылся, то выполнение сохранения датчиков
     if(file_stream_open(pd->file_stream, filepath, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
         const char template[] =
-            "#DHT monitor sensors files\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0,DHT22 - 1\n#GPIO - connection port.May being 2, 3, 4, 5, 6, 7, 15, 16\n";
+            "#DHT monitor sensors file\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0, DHT22 - 1\n#GPIO - connection port. May being 2, 3, 4, 5, 6, 7, 15, 16\n#Name Type GPIO\n";
         stream_write(pd->file_stream, (uint8_t*)template, strlen(template));
         //Сохранение датчиков
         for(uint8_t i = 0; i < pd->sensors_count; i++) {

@@ -41,6 +41,21 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
 
     /* Ожидание ответа от датчика */
     uint16_t timeout = 0;
+    while(!getLine()) {
+        timeout++;
+        if(timeout > DHT_TIMEOUT) {
+#ifdef DHT_IRQ_CONTROL
+            __enable_irq();
+#endif
+            //Если датчик не отозвался, значит его точно нет
+            //Обнуление последнего удачного значения, чтобы
+            //не получать фантомные значения
+            sensor->lastHum = -128.0f;
+            sensor->lastTemp = -128.0f;
+
+            return data;
+        }
+    }
     //Ожидание спада
     while(getLine()) {
         timeout++;

@@ -26,7 +26,11 @@ typedef struct {
     const uint8_t name;
     const GpioPin* pin;
 } GpioItem;
-
+GpioPin SWC_10 = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
+GpioPin SIO_12 = {.pin = LL_GPIO_PIN_13, .port = GPIOA};
+GpioPin TX_13 = {.pin = LL_GPIO_PIN_6, .port = GPIOB};
+GpioPin RX_14 = {.pin = LL_GPIO_PIN_7, .port = GPIOB};
+#define GPIO_ITEMS (sizeof(gpio_item) / sizeof(GpioItem))
 static const GpioItem gpio_item[] = {
     {2, &gpio_ext_pa7},
     {3, &gpio_ext_pa6},
@@ -34,9 +38,13 @@ static const GpioItem gpio_item[] = {
     {5, &gpio_ext_pb3},
     {6, &gpio_ext_pb2},
     {7, &gpio_ext_pc3},
+    {10, &SWC_10},
+    {12, &SIO_12},
+    {13, &TX_13},
+    {14, &RX_14},
     {15, &gpio_ext_pc1},
     {16, &gpio_ext_pc0},
-};
+    {17, &ibutton_gpio}};
 
 //Структура с данными плагина
 typedef struct {
@@ -54,7 +62,7 @@ typedef struct {
 Возвращает номер порта на корпусе FZ
 */
 static uint8_t gpio_to_int(GpioPin* gp) {
-    for(uint8_t i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
         if(gpio_item[i].pin->pin == gp->pin && gpio_item[i].pin->port == gp->port) {
             return gpio_item[i].name;
         }
@@ -67,7 +75,7 @@ static uint8_t gpio_to_int(GpioPin* gp) {
 Возвращает порт GPIO 
 */
 const GpioPin* int_to_gpio(uint8_t name) {
-    for(uint8_t i = 0; i < 8; i++) {
+    for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
         if(gpio_item[i].name == name) {
             return gpio_item[i].pin;
         }
@@ -135,7 +143,7 @@ uint8_t DHT_sensors_save(PluginData* pd) {
     //Открытие потока. Если поток открылся, то выполнение сохранения датчиков
     if(file_stream_open(pd->file_stream, filepath, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
         const char template[] =
-            "#DHT monitor sensors file\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0, DHT22 - 1\n#GPIO - connection port. May being 2, 3, 4, 5, 6, 7, 15, 16\n#Name Type GPIO\n";
+            "#DHT monitor sensors file\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0, DHT22 - 1\n#GPIO - connection port. May being 2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 15, 16, 17\n#Name Type GPIO\n";
         stream_write(pd->file_stream, (uint8_t*)template, strlen(template));
         //Сохранение датчиков
         for(uint8_t i = 0; i < pd->sensors_count; i++) {

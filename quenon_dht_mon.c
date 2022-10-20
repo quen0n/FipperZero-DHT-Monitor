@@ -26,10 +26,10 @@ typedef struct {
     const uint8_t name;
     const GpioPin* pin;
 } GpioItem;
-GpioPin SWC_10 = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
-GpioPin SIO_12 = {.pin = LL_GPIO_PIN_13, .port = GPIOA};
-GpioPin TX_13 = {.pin = LL_GPIO_PIN_6, .port = GPIOB};
-GpioPin RX_14 = {.pin = LL_GPIO_PIN_7, .port = GPIOB};
+const GpioPin SWC_10 = {.pin = LL_GPIO_PIN_14, .port = GPIOA};
+const GpioPin SIO_12 = {.pin = LL_GPIO_PIN_13, .port = GPIOA};
+const GpioPin TX_13 = {.pin = LL_GPIO_PIN_6, .port = GPIOB};
+const GpioPin RX_14 = {.pin = LL_GPIO_PIN_7, .port = GPIOB};
 #define GPIO_ITEMS (sizeof(gpio_item) / sizeof(GpioItem))
 static const GpioItem gpio_item[] = {
     {2, &gpio_ext_pa7},

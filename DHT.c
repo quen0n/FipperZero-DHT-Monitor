@@ -142,6 +142,21 @@ DHT_data DHT_getData(DHT_sensor* sensor) {
         if(sensor->type == DHT11) {
             data.hum = (float)rawData[0];
             data.temp = (float)rawData[2];
+            //DHT11 производства ASAIR имеют дробную часть в температуре
+            //А ещё температуру измеряет от -20 до +60 *С
+            //Вот прикол, да?
+            if(rawData[3] != 0) {
+                //Проверка знака
+                if(!(rawData[3] & (1 << 7))) {
+                    //Добавление положительной дробной части
+                    data.temp += rawData[3] * 0.1f;
+                } else {
+                    //А тут делаем отрицательное значение
+                    rawData[3] &= ~(1 << 7);
+                    data.temp += rawData[3] * 0.1f;
+                    data.temp *= -1;
+                }
+            }
         }
     }
 

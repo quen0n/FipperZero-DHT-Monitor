@@ -57,7 +57,7 @@ typedef struct {
     bool last_OTG_State; //Состояние OTG до запуска приложения
     Storage* storage; //Хранилище датчиков
     Stream* file_stream; //Поток файла с датчиками
-    uint8_t sensors_count; // Количество загруженных датчиков
+    int8_t sensors_count; // Количество загруженных датчиков
     DHT_sensor sensors[8]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
 } PluginData;
@@ -173,7 +173,7 @@ uint8_t DHT_sensors_save(PluginData* pd) {
 */
 bool DHT_sensors_load(PluginData* pd) {
     //Обнуление количества датчиков
-    pd->sensors_count = 0;
+    pd->sensors_count = -1;
     //Очистка предыдущих датчиков
     memset(pd->sensors, 0, sizeof(pd->sensors));
 
@@ -219,6 +219,7 @@ bool DHT_sensors_load(PluginData* pd) {
             sscanf(line, "%s %d %d", s.name, &type, &port);
             //Проверка правильности
             if((type == DHT11 || type == DHT22) && (int_to_gpio(port) != NULL)) {
+                if(pd->sensors_count == -1) pd->sensors_count = 0;
                 s.type = type;
                 s.DHT_Pin = *int_to_gpio(port);
                 pd->sensors[pd->sensors_count] = s;
@@ -273,7 +274,8 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         }
 
     } else {
-        canvas_draw_str(canvas, 2, 10, "Sensors not found");
+        if(plugin_data->sensors_count == 0) canvas_draw_str(canvas, 2, 10, "Sensors not found");
+        if(plugin_data->sensors_count == -1) canvas_draw_str(canvas, 2, 10, "Loading...");
     }
 
     release_mutex((ValueMutex*)ctx, plugin_data);
@@ -289,7 +291,8 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
 int32_t quenon_dht_mon_app() {
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
     PluginData* plugin_data = malloc(sizeof(PluginData));
-
+    //Обнуление количества датчиков
+    plugin_data->sensors_count = -1;
     ValueMutex state_mutex;
     if(!init_mutex(&state_mutex, plugin_data, sizeof(PluginData))) {
         FURI_LOG_E(APP_NAME, "cannot create mutex\r\n");

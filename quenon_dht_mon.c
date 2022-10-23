@@ -1,12 +1,16 @@
-#include <furi.h>
-#include <gui/gui.h>
-#include <input/input.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "furi_hal_power.h"
+
+#include <furi.h>
+#include <furi_hal_power.h>
+#include <gui/gui.h>
+#include <input/input.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
+
+#include <toolbox/stream/file_stream.h>
 
 #include "DHT.h"
-#include <toolbox/stream/file_stream.h>
 
 #define APP_NAME "DHT monitor"
 #define APP_PATH_FOLDER "/ext/DHT monitor"
@@ -48,6 +52,7 @@ static const GpioItem gpio_item[] = {
 
 //Структура с данными плагина
 typedef struct {
+    NotificationApp* notifications;
     char txtbuff[30]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
     Storage* storage; //Хранилище датчиков
@@ -156,7 +161,7 @@ uint8_t DHT_sensors_save(PluginData* pd) {
         }
     } else {
         //TODO: печать ошибки на экран
-        FURI_LOG_E(APP_NAME, "cannot open of create sensors file\r\n");
+        FURI_LOG_E(APP_NAME, "cannot open or create sensors file\r\n");
     }
     stream_free(pd->file_stream);
 
@@ -301,6 +306,10 @@ int32_t quenon_dht_mon_app() {
     Gui* gui = furi_record_open("gui");
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
+    plugin_data->notifications = furi_record_open(RECORD_NOTIFICATION);
+    //Постоянное свечение подсветки
+    notification_message(plugin_data->notifications, &sequence_display_backlight_enforce_on);
+
     //Подготовка хранилища
     plugin_data->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(plugin_data->storage, APP_PATH_FOLDER);
@@ -357,6 +366,9 @@ int32_t quenon_dht_mon_app() {
 
     //Деинициализация портов датчиков
     DHT_sensors_deinit(plugin_data);
+
+    //Автоматическое управление подсветкой
+    notification_message(plugin_data->notifications, &sequence_display_backlight_enforce_auto);
 
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);

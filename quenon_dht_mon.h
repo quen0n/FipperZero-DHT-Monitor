@@ -9,6 +9,8 @@
 
 #include <gui/gui.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/variable_item_list.h>
+#include <gui/modules/text_input.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 
@@ -53,6 +55,10 @@ typedef struct {
     Submenu* submenu;
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
+    VariableItemList* variable_item_list;
+    View* view;
+    TextInput* text_input;
+    VariableItem* item;
 
     char txtbuff[30]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
@@ -64,6 +70,12 @@ typedef struct {
 
 } PluginData;
 
+const GpioPin* index_to_gpio(uint8_t index);
+
+bool DHT_sensors_reload(void);
+uint8_t DHT_sensors_save(void);
+
 void scene_main(Canvas* const canvas, PluginData* app);
+void scene_addSensorMenu(PluginData* app);
 
 #endif

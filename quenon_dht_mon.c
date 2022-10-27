@@ -26,7 +26,7 @@ static const GpioItem gpio_item[] = {
     {17, &ibutton_gpio}};
 
 //Данные плагина
-static PluginData* app;
+PluginData* app;
 
 /* Функция конвертации GPIO в его номер FZ
 Принимает GPIO
@@ -54,6 +54,13 @@ const GpioPin* int_to_gpio(uint8_t name) {
     return NULL;
 }
 
+/* Функция конвертации индекса доступного порта в порт GPIO 
+Принимает число от 0 до GPIO_ITEMS-1
+Возвращает порт GPIO 
+*/
+const GpioPin* index_to_gpio(uint8_t index) {
+    return gpio_item[index].pin;
+}
 /* 
 Функция инициализации портов ввода/вывода датчиков
 */
@@ -218,6 +225,11 @@ bool DHT_sensors_load(void) {
     return false;
 }
 
+bool DHT_sensors_reload(void) {
+    DHT_sensors_deinit();
+    return DHT_sensors_load();
+}
+
 static void render_callback(Canvas* const canvas, void* ctx) {
     PluginData* app = acquire_mutex((ValueMutex*)ctx, 25);
     if(app == NULL) {
@@ -268,6 +280,9 @@ bool quenon_dht_mon_init(void) {
     storage_common_mkdir(app->storage, APP_PATH_FOLDER);
     app->file_stream = file_stream_alloc(app->storage);
 
+    app->variable_item_list = variable_item_list_alloc();
+    app->view = variable_item_list_get_view(app->variable_item_list);
+
     return true;
 }
 
@@ -294,12 +309,6 @@ int32_t quenon_dht_mon_app() {
     }
     //Постоянное свечение подсветки
     notification_message(app->notifications, &sequence_display_backlight_enforce_on);
-    furi_hal_gpio_init(
-        &ibutton_gpio, //Порт FZ
-        GpioModeOutputPushPull, //Режим работы - вход
-        GpioPullNo, //Отключение подтяжки
-        GpioSpeedLow); //Скорость работы - низкая
-    furi_hal_gpio_write(&ibutton_gpio, true);
     //Сохранение состояния наличия 5V на порту 1 FZ
     app->last_OTG_State = furi_hal_power_is_otg_enabled();
 
@@ -310,7 +319,6 @@ int32_t quenon_dht_mon_app() {
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(app->event_queue, &event, 100);
 
-        //PluginData* app = (PluginData*)
         acquire_mutex_block(&app->state_mutex);
 
         if(event_status == FuriStatusOk) {
@@ -327,6 +335,10 @@ int32_t quenon_dht_mon_app() {
                     case InputKeyLeft:
                         break;
                     case InputKeyOk:
+                        view_port_update(app->view_port);
+                        release_mutex(&app->state_mutex, app);
+                        scene_addSensorMenu(app);
+                        view_dispatcher_run(app->view_dispatcher);
                         break;
                     case InputKeyBack:
                         processing = false;

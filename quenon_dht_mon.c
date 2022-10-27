@@ -114,7 +114,7 @@ uint8_t DHT_sensors_save(void) {
     //Открытие потока. Если поток открылся, то выполнение сохранения датчиков
     if(file_stream_open(app->file_stream, filepath, FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
         const char template[] =
-            "#DHT monitor sensors file\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0, DHT22 - 1\n#GPIO - connection port. May being 2, 3, 4, 5, 6, 7, 10, 12, 13, 14, 15, 16, 17\n#Name Type GPIO\n";
+            "#DHT monitor sensors file\n#Name - name of sensor. Up to 10 sumbols\n#Type - type of sensor. DHT11 - 0, DHT22 - 1\n#GPIO - connection port. May being 2-7, 10, 12-17\n#Name Type GPIO\n";
         stream_write(app->file_stream, (uint8_t*)template, strlen(template));
         //Сохранение датчиков
         for(uint8_t i = 0; i < app->sensors_count; i++) {
@@ -153,20 +153,25 @@ bool DHT_sensors_load(void) {
     strcat(filepath, "/");
     strcat(filepath, APP_FILENAME);
     //Открытие потока к файлу
-    if(!file_stream_open(app->file_stream, filepath, FSAM_READ_WRITE, FSOM_OPEN_ALWAYS)) {
-        //Если файл отсутствует, то выход
-        FURI_LOG_E(APP_NAME, "Missing sensors file\r\n");
+    if(!file_stream_open(app->file_stream, filepath, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
+        //Если файл отсутствует, то создание болванки
+        FURI_LOG_W(APP_NAME, "Missing sensors file. Creating new file\r\n");
+        app->sensors_count = 0;
+        stream_free(app->file_stream);
+        DHT_sensors_save();
         return false;
     }
     //Вычисление размера файла
     size_t file_size = stream_size(app->file_stream);
     if(file_size == (size_t)0) {
         //Выход если файл пустой
-        FURI_LOG_E(APP_NAME, "Sensors file is empty\r\n");
+        FURI_LOG_W(APP_NAME, "Sensors file is empty\r\n");
+        app->sensors_count = 0;
+        stream_free(app->file_stream);
         return false;
     }
 
-    //Выделение памяти под загрузки файла
+    //Выделение памяти под загрузку файла
     uint8_t* file_buf = malloc(file_size);
     //Опустошение буфера файла
     memset(file_buf, 0, file_size);
@@ -174,6 +179,8 @@ bool DHT_sensors_load(void) {
     if(stream_read(app->file_stream, file_buf, file_size) != file_size) {
         //Выход при ошибке чтения
         FURI_LOG_E(APP_NAME, "Error reading sensor file\r\n");
+        app->sensors_count = 0;
+        stream_free(app->file_stream);
         return false;
     }
     //Построчное чтение файла
@@ -182,12 +189,15 @@ bool DHT_sensors_load(void) {
         if(line[0] != '#') {
             DHT_sensor s = {0};
             int type, port;
-            sscanf(line, "%s %d %d", s.name, &type, &port);
+            char name[11];
+            sscanf(line, "%s %d %d", name, &type, &port);
             //Проверка правильности
             if((type == DHT11 || type == DHT22) && (int_to_gpio(port) != NULL)) {
                 if(app->sensors_count == -1) app->sensors_count = 0;
                 s.type = type;
                 s.DHT_Pin = *int_to_gpio(port);
+                name[10] = '\0';
+                strcpy(s.name, name);
                 app->sensors[app->sensors_count] = s;
                 app->sensors_count++;
             }
@@ -196,8 +206,10 @@ bool DHT_sensors_load(void) {
     }
     stream_free(app->file_stream);
 
+    if(app->sensors_count == -1) app->sensors_count = 0;
+
     //Инициализация портов датчиков
-    if(app->sensors_count != 0) {
+    if(app->sensors_count > 0) {
         DHT_sensors_init();
         return true;
     } else {
@@ -282,7 +294,12 @@ int32_t quenon_dht_mon_app() {
     }
     //Постоянное свечение подсветки
     notification_message(app->notifications, &sequence_display_backlight_enforce_on);
-
+    furi_hal_gpio_init(
+        &ibutton_gpio, //Порт FZ
+        GpioModeOutputPushPull, //Режим работы - вход
+        GpioPullNo, //Отключение подтяжки
+        GpioSpeedLow); //Скорость работы - низкая
+    furi_hal_gpio_write(&ibutton_gpio, true);
     //Сохранение состояния наличия 5V на порту 1 FZ
     app->last_OTG_State = furi_hal_power_is_otg_enabled();
 
@@ -331,6 +348,4 @@ int32_t quenon_dht_mon_app() {
     return 0;
 }
 //TODO: Добавление датчика из меню
-//TODO: PowerPin
-//TODO: Ограничение длины имени датчика
 //TODO: Обработка ошибок

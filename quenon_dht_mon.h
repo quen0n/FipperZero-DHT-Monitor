@@ -26,6 +26,9 @@
 #define APP_PATH_FOLDER "/ext/DHT monitor"
 #define APP_FILENAME "sensors.txt"
 
+// //Виды менюшек
+typedef enum { MAIN_MENU_VIEW, ADDSENSOR_MENU_VIEW, TEXTINPUT_VIEW } MENU_VIEWS;
+
 typedef enum {
     EventTypeTick,
     EventTypeKey,
@@ -55,10 +58,10 @@ typedef struct {
     Submenu* submenu;
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
-    VariableItemList* variable_item_list;
     View* view;
     TextInput* text_input;
     VariableItem* item;
+    VariableItemList* variable_item_list;
 
     char txtbuff[30]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
@@ -76,6 +79,7 @@ bool DHT_sensors_reload(void);
 uint8_t DHT_sensors_save(void);
 
 void scene_main(Canvas* const canvas, PluginData* app);
-void scene_addSensorMenu(PluginData* app);
+void mainMenu_scene(PluginData* app);
+void addSensor_scene(PluginData* app);
 
 #endif

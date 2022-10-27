@@ -272,6 +272,8 @@ bool quenon_dht_mon_init(void) {
     app->gui = furi_record_open("gui");
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
+    app->variable_item_list = variable_item_list_alloc();
+
     //Уведомления
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
@@ -279,9 +281,6 @@ bool quenon_dht_mon_init(void) {
     app->storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(app->storage, APP_PATH_FOLDER);
     app->file_stream = file_stream_alloc(app->storage);
-
-    app->variable_item_list = variable_item_list_alloc();
-    app->view = variable_item_list_get_view(app->variable_item_list);
 
     return true;
 }
@@ -337,7 +336,7 @@ int32_t quenon_dht_mon_app() {
                     case InputKeyOk:
                         view_port_update(app->view_port);
                         release_mutex(&app->state_mutex, app);
-                        scene_addSensorMenu(app);
+                        mainMenu_scene(app);
                         view_dispatcher_run(app->view_dispatcher);
                         break;
                     case InputKeyBack:
@@ -359,5 +358,8 @@ int32_t quenon_dht_mon_app() {
 
     return 0;
 }
-//TODO: Добавление датчика из меню
+//TODO: Удаление датчиков из меню
 //TODO: Обработка ошибок
+//TODO: Пропуск использованных портов в меню добавления датчиков
+//TODO: Прокрутка датчиков в основном окне
+//TODO: Датчик начинает работать только после перезапуска приложения

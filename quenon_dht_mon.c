@@ -211,38 +211,8 @@ static void render_callback(Canvas* const canvas, void* ctx) {
     if(app == NULL) {
         return;
     }
-    // border around the edge of the screen
-    canvas_draw_frame(canvas, 0, 0, 128, 64);
-    canvas_set_font(canvas, FontPrimary);
 
-    if(app->sensors_count > 0) {
-        if(!furi_hal_power_is_otg_enabled()) {
-            furi_hal_power_enable_otg();
-        }
-        for(uint8_t i = 0; i < app->sensors_count; i++) {
-            app->data = DHT_getData(&app->sensors[i]);
-            char name[11] = {0};
-            memcpy(name, app->sensors[i].name, 10);
-
-            if(app->data.hum == -128.0f && app->data.temp == -128.0f) {
-                snprintf(app->txtbuff, sizeof(app->txtbuff), "%s: timeout", name);
-            } else {
-                snprintf(
-                    app->txtbuff,
-                    sizeof(app->txtbuff),
-                    "%s: %2.1f*C / %d%%",
-                    name,
-                    (double)app->data.temp,
-                    (int8_t)app->data.hum);
-            }
-
-            canvas_draw_str(canvas, 2, 10 + 10 * i, app->txtbuff);
-        }
-
-    } else {
-        if(app->sensors_count == 0) canvas_draw_str(canvas, 2, 10, "Sensors not found");
-        if(app->sensors_count == -1) canvas_draw_str(canvas, 2, 10, "Loading...");
-    }
+    scene_main(canvas, app);
 
     release_mutex((ValueMutex*)ctx, app);
 }
@@ -361,3 +331,6 @@ int32_t quenon_dht_mon_app() {
     return 0;
 }
 //TODO: Добавление датчика из меню
+//TODO: PowerPin
+//TODO: Ограничение длины имени датчика
+//TODO: Обработка ошибок

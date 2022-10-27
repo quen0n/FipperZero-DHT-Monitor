@@ -64,4 +64,6 @@ typedef struct {
 
 } PluginData;
 
+void scene_main(Canvas* const canvas, PluginData* app);
+
 #endif

@@ -89,7 +89,7 @@ void DHT_sensors_deinit(void) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         furi_hal_gpio_init(
             &app->sensors[i].DHT_Pin, //Порт FZ
-            GpioModeInput, //Режим работы - вход
+            GpioModeAnalog, //Режим работы - аналог
             GpioPullNo, //Отключение подтяжки
             GpioSpeedLow); //Скорость работы - низкая
         //Установка низкого уровня

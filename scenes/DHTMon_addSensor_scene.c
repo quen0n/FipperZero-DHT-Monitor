@@ -41,7 +41,7 @@ static void addSensor_sensorTypeChanged(VariableItem* item) {
 static void addSensor_GPIOChanged(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, GPIOs[index]);
-    tempSensor.DHT_Pin = *index_to_gpio(index);
+    tempSensor.GPIO = index_to_gpio(index);
 }
 
 static void addSensor_sensorNameChanged(void* context) {
@@ -84,7 +84,7 @@ void addSensor_scene(PluginData* app) {
     app->item =
         variable_item_list_add(variable_item_list, "Type:", 2, addSensor_sensorTypeChanged, app);
     value_index = 0;
-    tempSensor.DHT_Pin = *index_to_gpio(value_index);
+    tempSensor.GPIO = index_to_gpio(value_index);
     variable_item_set_current_value_index(app->item, value_index);
     variable_item_set_current_value_text(app->item, sensorsTypes[value_index]);
 

@@ -1,8 +1,8 @@
 #include "DHT.h"
 
-#define lineDown() furi_hal_gpio_write(&sensor->DHT_Pin, false)
-#define lineUp() furi_hal_gpio_write(&sensor->DHT_Pin, true)
-#define getLine() furi_hal_gpio_read(&sensor->DHT_Pin)
+#define lineDown() furi_hal_gpio_write(sensor->GPIO, false)
+#define lineUp() furi_hal_gpio_write(sensor->GPIO, true)
+#define getLine() furi_hal_gpio_read(sensor->GPIO)
 #define Delay(d) furi_delay_ms(d)
 
 DHT_data DHT_getData(DHT_sensor* sensor) {

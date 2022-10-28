@@ -27,7 +27,12 @@
 #define APP_FILENAME "sensors.txt"
 
 // //Виды менюшек
-typedef enum { MAIN_MENU_VIEW, ADDSENSOR_MENU_VIEW, TEXTINPUT_VIEW } MENU_VIEWS;
+typedef enum {
+    MAIN_MENU_VIEW,
+    ADDSENSOR_MENU_VIEW,
+    TEXTINPUT_VIEW,
+    SENSOR_ACTIONS_VIEW
+} MENU_VIEWS;
 
 typedef enum {
     EventTypeTick,
@@ -70,6 +75,7 @@ typedef struct {
     int8_t sensors_count; // Количество загруженных датчиков
     DHT_sensor sensors[8]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
+    DHT_sensor* currentSensorEdit; //Указатель на редактируемый датчик
 
 } PluginData;
 
@@ -81,5 +87,5 @@ uint8_t DHT_sensors_save(void);
 void scene_main(Canvas* const canvas, PluginData* app);
 void mainMenu_scene(PluginData* app);
 void addSensor_scene(PluginData* app);
-
+void sensorActions_scene(PluginData* app);
 #endif

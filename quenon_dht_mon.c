@@ -344,7 +344,10 @@ static bool quenon_dht_mon_init(void) {
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
     app->variable_item_list = variable_item_list_alloc();
+    app->view_dispatcher = view_dispatcher_alloc();
 
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     //Уведомления
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
@@ -414,8 +417,7 @@ int32_t quenon_dht_mon_app() {
                     case InputKeyOk:
                         view_port_update(app->view_port);
                         release_mutex(&app->state_mutex, app);
-                        mainMenu_scene(app);
-                        view_dispatcher_run(app->view_dispatcher);
+                        sensorActions_scene(app);
                         break;
                     case InputKeyBack:
                         processing = false;

@@ -83,6 +83,7 @@ typedef struct {
 } PluginData;
 
 const GpioPin* index_to_gpio(uint8_t index);
+uint8_t DHT_GPIO_to_int(const GpioPin* gp);
 
 bool DHT_sensors_reload(void);
 uint8_t DHT_sensors_save(void);

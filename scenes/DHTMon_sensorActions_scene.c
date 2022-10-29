@@ -55,6 +55,20 @@ static void sensorDeleteWidget(PluginData* app) {
     snprintf(delete_str, sizeof(delete_str), "\e#Delete %s?\e#", app->currentSensorEdit->name);
     widget_add_text_box_element(
         app->widget, 0, 0, 128, 23, AlignCenter, AlignCenter, delete_str, false);
+    snprintf(
+        delete_str,
+        sizeof(delete_str),
+        "\e#Type:\e# %s",
+        app->currentSensorEdit->type ? "DHT11" : "DHT22");
+    widget_add_text_box_element(
+        app->widget, 0, 0, 128, 47, AlignLeft, AlignCenter, delete_str, false);
+    snprintf(
+        delete_str,
+        sizeof(delete_str),
+        "\e#GPIO:\e# %d",
+        DHT_GPIO_to_int(app->currentSensorEdit->GPIO));
+    widget_add_text_box_element(
+        app->widget, 0, 0, 128, 72, AlignLeft, AlignCenter, delete_str, false);
     view_set_previous_callback(widget_get_view(app->widget), delete_exitCallback);
     view_dispatcher_switch_to_view(app->view_dispatcher, WIDGET_VIEW);
 }

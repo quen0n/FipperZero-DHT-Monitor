@@ -124,11 +124,15 @@ void DHT_sensors_deinit(void) {
  */
 bool DHT_sensor_check(DHT_sensor* sensor) {
     //Проверка имени
-    if(strlen(sensor->name) == 0 && strlen(sensor->name) > 10 && sensor->name[0] == ' ') {
+
+    if(strlen(sensor->name) == 0 || strlen(sensor->name) > 10 ||
+       (!(sensor->name[0] >= '0' && sensor->name[0] <= '9') &&
+        !(sensor->name[0] >= 'A' && sensor->name[0] <= 'Z') &&
+        !(sensor->name[0] >= 'a' && sensor->name[0] <= 'z'))) {
         FURI_LOG_D(APP_NAME, "Sensor [%s] name check failed\r\n", sensor->name);
         return false;
     }
-
+    FURI_LOG_D(APP_NAME, "name[0]: %c(%d)", sensor->name[0], sensor->name[0]);
     //Проверка GPIO
     if(DHT_GPIO_to_int(sensor->GPIO) == 255) {
         FURI_LOG_D(
@@ -356,6 +360,8 @@ static bool quenon_dht_mon_init(void) {
     app->variable_item_list = variable_item_list_alloc();
     app->view_dispatcher = view_dispatcher_alloc();
 
+    sensorActionsCreate_scene(app);
+
     view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -434,7 +440,7 @@ int32_t quenon_dht_mon_app() {
                     case InputKeyOk:
                         view_port_update(app->view_port);
                         release_mutex(&app->state_mutex, app);
-                        sensorActions_scene(app);
+                        mainMenu_scene(app);
                         break;
                     case InputKeyBack:
                         processing = false;

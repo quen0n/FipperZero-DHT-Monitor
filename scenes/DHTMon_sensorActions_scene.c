@@ -97,7 +97,7 @@ static uint32_t actions_exitCallback(void* context) {
     PluginData* app = context;
     UNUSED(app);
     //Возвращаем ID вида, в который нужно вернуться
-    return VIEW_NONE;
+    return MAIN_MENU_VIEW;
 }
 
 /**
@@ -105,7 +105,7 @@ static uint32_t actions_exitCallback(void* context) {
  * 
  * @param app Указатель на данные плагина
  */
-void sensorActions_scene(PluginData* app) {
+void sensorActionsCreate_scene(PluginData* app) {
     variable_item_list = variable_item_list_alloc();
     //Сброс всех элементов меню
     variable_item_list_reset(variable_item_list);
@@ -122,14 +122,8 @@ void sensorActions_scene(PluginData* app) {
     view_set_previous_callback(view, actions_exitCallback);
     //Добавление вида в диспетчер
     view_dispatcher_add_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW, view);
-
+}
+void sensorActions_scene(PluginData* app) {
     //Переключение на наш вид
     view_dispatcher_switch_to_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW);
-    //Запуск диспетчера
-    view_dispatcher_run(app->view_dispatcher);
-
-    //Очистка списка элементов
-    variable_item_list_free(variable_item_list);
-    //Удаление вида после обработки
-    view_dispatcher_remove_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW);
 }

@@ -93,4 +93,5 @@ void scene_main(Canvas* const canvas, PluginData* app);
 void mainMenu_scene(PluginData* app);
 void addSensor_scene(PluginData* app);
 void sensorActions_scene(PluginData* app);
+void sensorActionsCreate_scene(PluginData* app);
 #endif

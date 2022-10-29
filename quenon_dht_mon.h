@@ -11,6 +11,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/text_input.h>
+#include <gui/modules/widget.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 
@@ -31,7 +32,8 @@ typedef enum {
     MAIN_MENU_VIEW,
     ADDSENSOR_MENU_VIEW,
     TEXTINPUT_VIEW,
-    SENSOR_ACTIONS_VIEW
+    SENSOR_ACTIONS_VIEW,
+    WIDGET_VIEW,
 } MENU_VIEWS;
 
 typedef enum {
@@ -67,6 +69,7 @@ typedef struct {
     TextInput* text_input;
     VariableItem* item;
     VariableItemList* variable_item_list;
+    Widget* widget;
 
     char txtbuff[30]; //Буффер для печати строк на экране
     bool last_OTG_State; //Состояние OTG до запуска приложения
@@ -83,6 +86,7 @@ const GpioPin* index_to_gpio(uint8_t index);
 
 bool DHT_sensors_reload(void);
 uint8_t DHT_sensors_save(void);
+void DHT_sensor_delete(DHT_sensor* sensor);
 
 void scene_main(Canvas* const canvas, PluginData* app);
 void mainMenu_scene(PluginData* app);

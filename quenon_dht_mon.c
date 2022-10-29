@@ -149,6 +149,16 @@ bool DHT_sensor_check(DHT_sensor* sensor) {
     return true;
 }
 
+void DHT_sensor_delete(DHT_sensor* sensor) {
+    //Делаем параметры датчика неверными
+    sensor->name[0] = '\0';
+    sensor->type = 255;
+    //Теперь сохраняем текущие датчики. Сохранятор не сохранит неисправный датчик
+    DHT_sensors_save();
+    //Перезагружаемся с SD-карты
+    DHT_sensors_reload();
+}
+
 /**
  * @brief Сохранение датчиков на SD-карту
  * 
@@ -348,6 +358,10 @@ static bool quenon_dht_mon_init(void) {
 
     view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    app->widget = widget_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, WIDGET_VIEW, widget_get_view(app->widget));
+
     //Уведомления
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
@@ -375,6 +389,7 @@ static void quenon_dht_mon_free(void) {
     view_port_free(app->view_port);
     furi_message_queue_free(app->event_queue);
     delete_mutex(&app->state_mutex);
+    widget_free(app->widget);
 }
 
 /**
@@ -394,6 +409,8 @@ int32_t quenon_dht_mon_app() {
 
     //Загрузка датчиков с SD-карты
     DHT_sensors_load();
+
+    app->currentSensorEdit = &app->sensors[0];
 
     PluginEvent event;
     for(bool processing = true; processing;) {

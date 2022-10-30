@@ -28,10 +28,13 @@ static void enterCallback(void* context, uint32_t index) {
         app->currentSensorEdit = &app->sensors[index];
         sensorActions_scene(app);
     }
-    /*if((uint8_t)index == (uint8_t)app->sensors_count) {
-        addSensor_scene(app);
-        view_dispatcher_run(app->view_dispatcher);
-    }*/
+    if((uint8_t)index == (uint8_t)app->sensors_count) {
+        app->currentSensorEdit = &app->sensors[app->sensors_count++];
+        strcpy(app->currentSensorEdit->name, "NewSensor");
+        app->currentSensorEdit->GPIO = index_to_gpio(0);
+        app->currentSensorEdit->type = DHT11;
+        sensorEdit_scene(app);
+    }
 }
 
 /**

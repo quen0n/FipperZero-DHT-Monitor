@@ -82,6 +82,9 @@ static void sensorDeleteWidget(PluginData* app) {
  */
 static void enterCallback(void* context, uint32_t index) {
     PluginData* app = context;
+    if(index == 0) {
+        sensorEdit_scene(app);
+    }
     if(index == 1) {
         sensorDeleteWidget(app);
     }

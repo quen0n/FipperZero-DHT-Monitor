@@ -83,6 +83,8 @@ typedef struct {
 } PluginData;
 
 const GpioPin* index_to_gpio(uint8_t index);
+uint8_t gpio_to_index(const GpioPin* gpio);
+
 uint8_t DHT_GPIO_to_int(const GpioPin* gp);
 
 bool DHT_sensors_reload(void);
@@ -91,7 +93,10 @@ void DHT_sensor_delete(DHT_sensor* sensor);
 
 void scene_main(Canvas* const canvas, PluginData* app);
 void mainMenu_scene(PluginData* app);
-void addSensor_scene(PluginData* app);
+
+void sensorEdit_sceneCreate(PluginData* app);
+void sensorEdit_scene(PluginData* app);
+
 void sensorActions_scene(PluginData* app);
 void sensorActionsCreate_scene(PluginData* app);
 #endif

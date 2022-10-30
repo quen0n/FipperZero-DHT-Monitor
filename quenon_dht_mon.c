@@ -60,7 +60,7 @@ const GpioPin* DHT_GPIO_form_int(uint8_t name) {
 }
 
 /**
- * @brief Преобразование порядкового номера свободного порта в GPIO
+ * @brief Преобразование порядкового номера порта в GPIO
  * 
  * @param index Индекс порта от 0 до GPIO_ITEMS-1
  * @return GPIO при успехе, NULL при ошибке
@@ -68,6 +68,22 @@ const GpioPin* DHT_GPIO_form_int(uint8_t name) {
 const GpioPin* index_to_gpio(uint8_t index) {
     if(index > GPIO_ITEMS) return NULL;
     return gpio_item[index].pin;
+}
+
+/**
+ * @brief Преобразование GPIO в порядковый номер порта
+ * 
+ * @param gpio Указатель на GPIO
+ * @return index при успехе, 255 при ошибке
+ */
+uint8_t gpio_to_index(const GpioPin* gpio) {
+    if(gpio == NULL) return 255;
+    for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
+        if(gpio_item[i].pin->pin == gpio->pin && gpio_item[i].pin->port == gpio->port) {
+            return i;
+        }
+    }
+    return 255;
 }
 
 /**
@@ -128,7 +144,7 @@ bool DHT_sensor_check(DHT_sensor* sensor) {
     if(strlen(sensor->name) == 0 || strlen(sensor->name) > 10 ||
        (!(sensor->name[0] >= '0' && sensor->name[0] <= '9') &&
         !(sensor->name[0] >= 'A' && sensor->name[0] <= 'Z') &&
-        !(sensor->name[0] >= 'a' && sensor->name[0] <= 'z'))) {
+        !(sensor->name[0] >= 'a' && sensor->name[0] <= 'z') && !(sensor->name[0] == '_'))) {
         FURI_LOG_D(APP_NAME, "Sensor [%s] name check failed\r\n", sensor->name);
         return false;
     }
@@ -361,12 +377,17 @@ static bool quenon_dht_mon_init(void) {
     app->view_dispatcher = view_dispatcher_alloc();
 
     sensorActionsCreate_scene(app);
-
-    view_dispatcher_enable_queue(app->view_dispatcher);
-    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    sensorEdit_sceneCreate(app);
 
     app->widget = widget_alloc();
     view_dispatcher_add_view(app->view_dispatcher, WIDGET_VIEW, widget_get_view(app->widget));
+
+    app->text_input = text_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, TEXTINPUT_VIEW, text_input_get_view(app->text_input));
+
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     //Уведомления
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
@@ -462,7 +483,6 @@ int32_t quenon_dht_mon_app() {
 
     return 0;
 }
-//TODO: Удаление датчиков из меню
 //TODO: Обработка ошибок
 //TODO: Пропуск использованных портов в меню добавления датчиков
 //TODO: Прокрутка датчиков в основном окне

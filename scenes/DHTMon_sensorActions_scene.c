@@ -59,7 +59,7 @@ static void sensorDeleteWidget(PluginData* app) {
         delete_str,
         sizeof(delete_str),
         "\e#Type:\e# %s",
-        app->currentSensorEdit->type ? "DHT11" : "DHT22");
+        app->currentSensorEdit->type ? "DHT22" : "DHT11");
     widget_add_text_box_element(
         app->widget, 0, 0, 128, 47, AlignLeft, AlignCenter, delete_str, false);
     snprintf(

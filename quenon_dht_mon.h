@@ -26,6 +26,7 @@
 #define APP_NAME "DHT monitor"
 #define APP_PATH_FOLDER "/ext/DHT monitor"
 #define APP_FILENAME "sensors.txt"
+#define MAX_SENSORS 5
 
 // //Виды менюшек
 typedef enum {
@@ -73,7 +74,7 @@ typedef struct {
     Storage* storage; //Хранилище датчиков
     Stream* file_stream; //Поток файла с датчиками
     int8_t sensors_count; // Количество загруженных датчиков
-    DHT_sensor sensors[8]; //Сохранённые датчики
+    DHT_sensor sensors[MAX_SENSORS]; //Сохранённые датчики
     DHT_data data; //Инфа из датчика
     DHT_sensor* currentSensorEdit; //Указатель на редактируемый датчик
 

@@ -50,7 +50,9 @@ void mainMenu_scene(PluginData* app) {
     for(uint8_t i = 0; i < app->sensors_count; i++) {
         variable_item_list_add(variable_item_list, app->sensors[i].name, 1, NULL, NULL);
     }
-    variable_item_list_add(variable_item_list, "       + Add new sensor +", 1, NULL, NULL);
+    if(app->sensors_count < (uint8_t)MAX_SENSORS) {
+        variable_item_list_add(variable_item_list, "       + Add new sensor +", 1, NULL, NULL);
+    }
 
     //Добавление колбека на нажатие средней кнопки
     variable_item_list_set_enter_callback(variable_item_list, enterCallback, app);

@@ -3,11 +3,11 @@
 static VariableItem* nameItem;
 static VariableItemList* variable_item_list;
 
-const char* const sensorsTypes[2] = {
+static const char* const sensorsTypes[2] = {
     "DHT11",
     "DHT22",
 };
-const char* const GPIOs[13] = {
+static const char* const GPIOs[13] = {
     "2",
     "3",
     "4",
@@ -26,7 +26,7 @@ const char* const GPIOs[13] = {
 // /* ============== Добавление датчика ============== */
 static uint32_t addSensor_exitCallback(void* context) {
     UNUSED(context);
-    DHT_sensors_reload();
+    DHTMon_sensors_reload();
     return VIEW_NONE;
 }
 
@@ -41,7 +41,7 @@ static void addSensor_GPIOChanged(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     variable_item_set_current_value_text(item, GPIOs[index]);
     PluginData* app = variable_item_get_context(item);
-    app->currentSensorEdit->GPIO = index_to_gpio(index);
+    app->currentSensorEdit->GPIO = DHTMon_GPIO_from_index(index);
 }
 
 static void addSensor_sensorNameChanged(void* context) {
@@ -65,8 +65,8 @@ static void addSensor_enterCallback(void* context, uint32_t index) {
     if(index == 3) {
         //Сохранение датчика
         //TODO: проверить правильность данных датчика
-        DHT_sensors_save();
-        DHT_sensors_reload();
+        DHTMon_sensors_save();
+        DHTMon_sensors_reload();
         view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_NONE);
     }
 }
@@ -103,11 +103,15 @@ void sensorEdit_scene(PluginData* app) {
     //GPIO
     app->item =
         variable_item_list_add(variable_item_list, "GPIO:", 13, addSensor_GPIOChanged, app);
-    variable_item_set_current_value_index(app->item, gpio_to_index(app->currentSensorEdit->GPIO));
+    variable_item_set_current_value_index(
+        app->item, DHTMon_GPIO_to_index(app->currentSensorEdit->GPIO));
     variable_item_set_current_value_text(
-        app->item, GPIOs[gpio_to_index(app->currentSensorEdit->GPIO)]);
+        app->item, GPIOs[DHTMon_GPIO_to_index(app->currentSensorEdit->GPIO)]);
 
     variable_item_list_add(variable_item_list, "Save", 1, NULL, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ADDSENSOR_MENU_VIEW);
+}
+void sensorEdit_sceneRemove(void) {
+    variable_item_list_free(variable_item_list);
 }

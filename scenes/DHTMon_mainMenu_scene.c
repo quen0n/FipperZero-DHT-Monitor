@@ -31,7 +31,7 @@ static void enterCallback(void* context, uint32_t index) {
     if((uint8_t)index == (uint8_t)app->sensors_count) {
         app->currentSensorEdit = &app->sensors[app->sensors_count++];
         strcpy(app->currentSensorEdit->name, "NewSensor");
-        app->currentSensorEdit->GPIO = index_to_gpio(0);
+        app->currentSensorEdit->GPIO = DHTMon_GPIO_from_index(0);
         app->currentSensorEdit->type = DHT11;
         sensorEdit_scene(app);
     }

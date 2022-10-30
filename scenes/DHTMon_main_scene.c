@@ -2,7 +2,6 @@
 
 /* ============== Главный экран ============== */
 void scene_main(Canvas* const canvas, PluginData* app) {
-    UNUSED(app);
     //Рисование бара
     canvas_draw_box(canvas, 0, 0, 128, 14);
     canvas_set_color(canvas, ColorWhite);

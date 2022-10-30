@@ -34,7 +34,7 @@ static void widgetCallback(GuiButtonType result, InputType type, void* context) 
     //Коротко нажата правая кнопка (Delete)
     if(result == GuiButtonTypeRight && type == InputTypeShort) {
         //Удаление датчика
-        DHT_sensor_delete(app->currentSensorEdit);
+        DHTMon_sensor_delete(app->currentSensorEdit);
         //Выход из меню
         view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_NONE);
     }
@@ -66,7 +66,7 @@ static void sensorDeleteWidget(PluginData* app) {
         delete_str,
         sizeof(delete_str),
         "\e#GPIO:\e# %d",
-        DHT_GPIO_to_int(app->currentSensorEdit->GPIO));
+        DHTMon_GPIO_to_int(app->currentSensorEdit->GPIO));
     widget_add_text_box_element(
         app->widget, 0, 0, 128, 72, AlignLeft, AlignCenter, delete_str, false);
     view_set_previous_callback(widget_get_view(app->widget), delete_exitCallback);
@@ -108,7 +108,7 @@ static uint32_t actions_exitCallback(void* context) {
  * 
  * @param app Указатель на данные плагина
  */
-void sensorActionsCreate_scene(PluginData* app) {
+void sensorActions_sceneCreate(PluginData* app) {
     variable_item_list = variable_item_list_alloc();
     //Сброс всех элементов меню
     variable_item_list_reset(variable_item_list);
@@ -129,4 +129,8 @@ void sensorActionsCreate_scene(PluginData* app) {
 void sensorActions_scene(PluginData* app) {
     //Переключение на наш вид
     view_dispatcher_switch_to_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW);
+}
+
+void sensorActions_screneRemove(void) {
+    variable_item_list_free(variable_item_list);
 }

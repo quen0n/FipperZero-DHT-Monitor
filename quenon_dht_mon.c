@@ -28,29 +28,17 @@ static const GpioItem gpio_item[] = {
 //Данные плагина
 static PluginData* app;
 
-/**
- * @brief Функция конвертации GPIO в его номер FZ
- * 
- * @param gp Указатель на преобразовываемый GPIO
- * @return Номер порта на корпусе FZ
- */
-uint8_t DHT_GPIO_to_int(const GpioPin* gp) {
-    if(gp == NULL) return 255;
+uint8_t DHTMon_GPIO_to_int(const GpioPin* gpio) {
+    if(gpio == NULL) return 255;
     for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
-        if(gpio_item[i].pin->pin == gp->pin && gpio_item[i].pin->port == gp->port) {
+        if(gpio_item[i].pin->pin == gpio->pin && gpio_item[i].pin->port == gpio->port) {
             return gpio_item[i].name;
         }
     }
     return 255;
 }
 
-/**
- * @brief Функция конвертации порта FZ в GPIO 
- * 
- * @param name Номер порта на корпусе FZ
- * @return GPIO при успехе, NULL при ошибке
- */
-const GpioPin* DHT_GPIO_form_int(uint8_t name) {
+const GpioPin* DHTMon_GPIO_form_int(uint8_t name) {
     for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
         if(gpio_item[i].name == name) {
             return gpio_item[i].pin;
@@ -59,24 +47,12 @@ const GpioPin* DHT_GPIO_form_int(uint8_t name) {
     return NULL;
 }
 
-/**
- * @brief Преобразование порядкового номера порта в GPIO
- * 
- * @param index Индекс порта от 0 до GPIO_ITEMS-1
- * @return GPIO при успехе, NULL при ошибке
- */
-const GpioPin* index_to_gpio(uint8_t index) {
+const GpioPin* DHTMon_GPIO_from_index(uint8_t index) {
     if(index > GPIO_ITEMS) return NULL;
     return gpio_item[index].pin;
 }
 
-/**
- * @brief Преобразование GPIO в порядковый номер порта
- * 
- * @param gpio Указатель на GPIO
- * @return index при успехе, 255 при ошибке
- */
-uint8_t gpio_to_index(const GpioPin* gpio) {
+uint8_t DHTMon_GPIO_to_index(const GpioPin* gpio) {
     if(gpio == NULL) return 255;
     for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
         if(gpio_item[i].pin->pin == gpio->pin && gpio_item[i].pin->port == gpio->port) {
@@ -86,11 +62,7 @@ uint8_t gpio_to_index(const GpioPin* gpio) {
     return 255;
 }
 
-/**
- * @brief Инициализация портов ввода/вывода датчиков
- * 
- */
-void DHT_sensors_init(void) {
+void DHTMon_sensors_init(void) {
     //Включение 5V если на порту 1 FZ его нет
     if(furi_hal_power_is_otg_enabled() != true) {
         furi_hal_power_enable_otg();
@@ -109,11 +81,7 @@ void DHT_sensors_init(void) {
     }
 }
 
-/**
- * @brief Функция деинициализации портов ввода/вывода датчиков
- * 
- */
-void DHT_sensors_deinit(void) {
+void DHTMon_sensors_deinit(void) {
     //Возврат исходного состояния 5V
     if(app->last_OTG_State != true) {
         furi_hal_power_disable_otg();
@@ -131,16 +99,10 @@ void DHT_sensors_deinit(void) {
     }
 }
 
-/**
- * @brief Проверка корректности параметров датчика
- * 
- * @param sensor Указатель на проверяемый датчик
- * @return true Параметры датчика корректные
- * @return false Параметры датчика некорректные
- */
-bool DHT_sensor_check(DHT_sensor* sensor) {
-    //Проверка имени
-
+bool DHTMon_sensor_check(DHT_sensor* sensor) {
+    /* Проверка имени */
+    //1) Строка должна быть длиной от 1 до 10 символов
+    //2) Первый символ строки должен быть только 0-9, A-Z, a-z и _
     if(strlen(sensor->name) == 0 || strlen(sensor->name) > 10 ||
        (!(sensor->name[0] >= '0' && sensor->name[0] <= '9') &&
         !(sensor->name[0] >= 'A' && sensor->name[0] <= 'Z') &&
@@ -148,14 +110,13 @@ bool DHT_sensor_check(DHT_sensor* sensor) {
         FURI_LOG_D(APP_NAME, "Sensor [%s] name check failed\r\n", sensor->name);
         return false;
     }
-    FURI_LOG_D(APP_NAME, "name[0]: %c(%d)", sensor->name[0], sensor->name[0]);
     //Проверка GPIO
-    if(DHT_GPIO_to_int(sensor->GPIO) == 255) {
+    if(DHTMon_GPIO_to_int(sensor->GPIO) == 255) {
         FURI_LOG_D(
             APP_NAME,
             "Sensor [%s] GPIO check failed: %d\r\n",
             sensor->name,
-            DHT_GPIO_to_int(sensor->GPIO));
+            DHTMon_GPIO_to_int(sensor->GPIO));
         return false;
     }
     //Проверка типа датчика
@@ -169,24 +130,21 @@ bool DHT_sensor_check(DHT_sensor* sensor) {
     return true;
 }
 
-void DHT_sensor_delete(DHT_sensor* sensor) {
+void DHTMon_sensor_delete(DHT_sensor* sensor) {
+    if(sensor == NULL) return;
     //Делаем параметры датчика неверными
     sensor->name[0] = '\0';
     sensor->type = 255;
     //Теперь сохраняем текущие датчики. Сохранятор не сохранит неисправный датчик
-    DHT_sensors_save();
+    DHTMon_sensors_save();
     //Перезагружаемся с SD-карты
-    DHT_sensors_reload();
+    DHTMon_sensors_reload();
 }
 
-/**
- * @brief Сохранение датчиков на SD-карту
- * 
- * @return Количество сохранённых датчиков
- */
-uint8_t DHT_sensors_save(void) {
+uint8_t DHTMon_sensors_save(void) {
     //Выделение памяти для потока
     app->file_stream = file_stream_alloc(app->storage);
+    uint8_t savedSensorsCount = 0;
     //Переменная пути к файлу
     char filepath[sizeof(APP_PATH_FOLDER) + sizeof(APP_FILENAME)] = {0};
     //Составление пути к файлу
@@ -202,32 +160,26 @@ uint8_t DHT_sensors_save(void) {
         //Сохранение датчиков
         for(uint8_t i = 0; i < app->sensors_count; i++) {
             //Если параметры датчика верны, то сохраняемся
-            if(DHT_sensor_check(&app->sensors[i])) {
+            if(DHTMon_sensor_check(&app->sensors[i])) {
                 stream_write_format(
                     app->file_stream,
                     "%s %d %d\n",
                     app->sensors[i].name,
                     app->sensors[i].type,
-                    DHT_GPIO_to_int(app->sensors[i].GPIO));
+                    DHTMon_GPIO_to_int(app->sensors[i].GPIO));
+                savedSensorsCount++;
             }
         }
     } else {
         //TODO: печать ошибки на экран
-        FURI_LOG_E(APP_NAME, "cannot open or create sensors file\r\n");
+        FURI_LOG_E(APP_NAME, "cannot create sensors file\r\n");
     }
     stream_free(app->file_stream);
 
-    //Всегда возвращает 0, над исправить
-    return 0;
+    return savedSensorsCount;
 }
 
-/**
- * @brief Загрузка датчиков с SD-карты
- * 
- * @return true Был загружен хотя бы 1 датчик
- * @return false Датчики отсутствуют
- */
-bool DHT_sensors_load(void) {
+bool DHTMon_sensors_load(void) {
     //Обнуление количества датчиков
     app->sensors_count = -1;
     //Очистка предыдущих датчиков
@@ -248,7 +200,7 @@ bool DHT_sensors_load(void) {
         FURI_LOG_W(APP_NAME, "Missing sensors file. Creating new file\r\n");
         app->sensors_count = 0;
         stream_free(app->file_stream);
-        DHT_sensors_save();
+        DHTMon_sensors_save();
         return false;
     }
     //Вычисление размера файла
@@ -282,12 +234,12 @@ bool DHT_sensors_load(void) {
             char name[11];
             sscanf(line, "%s %d %d", name, &type, &port);
             s.type = type;
-            s.GPIO = DHT_GPIO_form_int(port);
+            s.GPIO = DHTMon_GPIO_form_int(port);
 
             name[10] = '\0';
             strcpy(s.name, name);
             //Если данные корректны, то
-            if(DHT_sensor_check(&s) == true) {
+            if(DHTMon_sensor_check(&s) == true) {
                 //Установка нуля при первом датчике
                 if(app->sensors_count == -1) app->sensors_count = 0;
                 //Добавление датчика в общий список
@@ -306,7 +258,7 @@ bool DHT_sensors_load(void) {
 
     //Инициализация портов датчиков если таковые есть
     if(app->sensors_count > 0) {
-        DHT_sensors_init();
+        DHTMon_sensors_init();
         return true;
     } else {
         return false;
@@ -314,28 +266,34 @@ bool DHT_sensors_load(void) {
     return false;
 }
 
-/**
- * @brief Перезагрузка датчиков с SD-карты
- * 
- * @return true Когда был загружен хотя бы 1 датчик
- * @return false Ни один из датчиков не был загружен
- */
-bool DHT_sensors_reload(void) {
-    DHT_sensors_deinit();
-    return DHT_sensors_load();
+bool DHTMon_sensors_reload(void) {
+    DHTMon_sensors_deinit();
+    return DHTMon_sensors_load();
 }
 
+/**
+ * @brief Обработчик отрисовки экрана
+ * 
+ * @param canvas Указатель на холст
+ * @param ctx Данные плагина
+ */
 static void render_callback(Canvas* const canvas, void* ctx) {
     PluginData* app = acquire_mutex((ValueMutex*)ctx, 25);
     if(app == NULL) {
         return;
     }
-
+    //Вызов отрисовки главного экрана
     scene_main(canvas, app);
 
     release_mutex((ValueMutex*)ctx, app);
 }
 
+/**
+ * @brief Обработчик нажатия кнопок главного экрана
+ * 
+ * @param input_event Указатель на событие
+ * @param event_queue Указатель на очередь событий
+ */
 static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
     furi_assert(event_queue);
 
@@ -349,7 +307,7 @@ static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queu
  * @return true Если всё прошло успешно
  * @return false Если в процессе загрузки произошла ошибка
  */
-static bool quenon_dht_mon_init(void) {
+static bool DHTMon_alloc(void) {
     //Выделение места под данные плагина
     app = malloc(sizeof(PluginData));
     //Выделение места под очередь событий
@@ -370,13 +328,12 @@ static bool quenon_dht_mon_init(void) {
     view_port_input_callback_set(app->view_port, input_callback, app->event_queue);
 
     // Open GUI and register view_port
-    app->gui = furi_record_open("gui");
+    app->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
-    app->variable_item_list = variable_item_list_alloc();
     app->view_dispatcher = view_dispatcher_alloc();
 
-    sensorActionsCreate_scene(app);
+    sensorActions_sceneCreate(app);
     sensorEdit_sceneCreate(app);
 
     app->widget = widget_alloc();
@@ -402,21 +359,30 @@ static bool quenon_dht_mon_init(void) {
 
 /**
  * @brief Освыбождение памяти после работы приложения
- * 
  */
-
-static void quenon_dht_mon_free(void) {
+static void DHTMon_free(void) {
     //Автоматическое управление подсветкой
     notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
 
+    furi_record_close(RECORD_STORAGE);
+    furi_record_close(RECORD_NOTIFICATION);
+
+    text_input_free(app->text_input);
+    widget_free(app->widget);
+    sensorEdit_sceneRemove();
+    sensorActions_screneRemove();
+    view_dispatcher_free(app->view_dispatcher);
+
+    furi_record_close(RECORD_GUI);
+
     view_port_enabled_set(app->view_port, false);
     gui_remove_view_port(app->gui, app->view_port);
-    furi_record_close("gui");
-    furi_record_close(RECORD_STORAGE);
+
     view_port_free(app->view_port);
     furi_message_queue_free(app->event_queue);
     delete_mutex(&app->state_mutex);
-    widget_free(app->widget);
+
+    free(app);
 }
 
 /**
@@ -425,8 +391,8 @@ static void quenon_dht_mon_free(void) {
  * @return Код ошибки
  */
 int32_t quenon_dht_mon_app() {
-    if(!quenon_dht_mon_init()) {
-        quenon_dht_mon_free();
+    if(!DHTMon_alloc()) {
+        DHTMon_free();
         return 255;
     }
     //Постоянное свечение подсветки
@@ -435,7 +401,7 @@ int32_t quenon_dht_mon_app() {
     app->last_OTG_State = furi_hal_power_is_otg_enabled();
 
     //Загрузка датчиков с SD-карты
-    DHT_sensors_load();
+    DHTMon_sensors_load();
 
     app->currentSensorEdit = &app->sensors[0];
 
@@ -478,8 +444,8 @@ int32_t quenon_dht_mon_app() {
         release_mutex(&app->state_mutex, app);
     }
     //Освобождение памяти и деинициализация
-    DHT_sensors_deinit();
-    quenon_dht_mon_free();
+    DHTMon_sensors_deinit();
+    DHTMon_free();
 
     return 0;
 }

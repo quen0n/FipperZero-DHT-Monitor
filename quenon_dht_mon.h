@@ -62,13 +62,10 @@ typedef struct {
     //GUI
     Gui* gui;
     NotificationApp* notifications;
-    Submenu* submenu;
-    SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
     View* view;
     TextInput* text_input;
     VariableItem* item;
-    VariableItemList* variable_item_list;
     Widget* widget;
 
     char txtbuff[30]; //Буффер для печати строк на экране
@@ -82,21 +79,88 @@ typedef struct {
 
 } PluginData;
 
-const GpioPin* index_to_gpio(uint8_t index);
-uint8_t gpio_to_index(const GpioPin* gpio);
+/* ================== Работа с GPIO ================== */
+/**
+ * @brief Конвертация GPIO в его номер на корпусе FZ
+ * 
+ * @param gpio Указатель на преобразовываемый GPIO
+ * @return Номер порта на корпусе FZ
+ */
+uint8_t DHTMon_GPIO_to_int(const GpioPin* gpio);
+/**
+ * @brief Конвертация номера порта на корпусе FZ в GPIO 
+ * 
+ * @param name Номер порта на корпусе FZ
+ * @return Указатель на GPIO при успехе, NULL при ошибке
+ */
+const GpioPin* DHTMon_GPIO_form_int(uint8_t name);
+/**
+ * @brief Преобразование порядкового номера порта в GPIO
+ * 
+ * @param index Индекс порта от 0 до GPIO_ITEMS-1
+ * @return Указатель на GPIO при успехе, NULL при ошибке
+ */
+const GpioPin* DHTMon_GPIO_from_index(uint8_t index);
+/**
+ * @brief Преобразование GPIO в порядковый номер порта
+ * 
+ * @param gpio Указатель на GPIO
+ * @return index при успехе, 255 при ошибке
+ */
+uint8_t DHTMon_GPIO_to_index(const GpioPin* gpio);
 
-uint8_t DHT_GPIO_to_int(const GpioPin* gp);
-
-bool DHT_sensors_reload(void);
-uint8_t DHT_sensors_save(void);
-void DHT_sensor_delete(DHT_sensor* sensor);
+/* ================== Работа с датчиками ================== */
+/**
+ * @brief Инициализация портов ввода/вывода датчиков
+ */
+void DHTMon_sensors_init(void);
+/**
+ * @brief Функция деинициализации портов ввода/вывода датчиков
+ */
+void DHTMon_sensors_deinit(void);
+/**
+ * @brief Проверка корректности параметров датчика
+ * 
+ * @param sensor Указатель на проверяемый датчик
+ * @return true Параметры датчика корректные
+ * @return false Параметры датчика некорректные
+ */
+bool DHTMon_sensor_check(DHT_sensor* sensor);
+/**
+ * @brief Удаление датчика из списка и перезагрузка
+ * 
+ * @param sensor Указатель на удаляемый датчик
+ */
+void DHTMon_sensor_delete(DHT_sensor* sensor);
+/**
+ * @brief Сохранение датчиков на SD-карту
+ * 
+ * @return Количество сохранённых датчиков
+ */
+uint8_t DHTMon_sensors_save(void);
+/**
+ * @brief Загрузка датчиков с SD-карты
+ * 
+ * @return true Был загружен хотя бы 1 датчик
+ * @return false Датчики отсутствуют
+ */
+bool DHTMon_sensors_load(void);
+/**
+ * @brief Перезагрузка датчиков с SD-карты
+ * 
+ * @return true Когда был загружен хотя бы 1 датчик
+ * @return false Ни один из датчиков не был загружен
+ */
+bool DHTMon_sensors_reload(void);
 
 void scene_main(Canvas* const canvas, PluginData* app);
 void mainMenu_scene(PluginData* app);
 
 void sensorEdit_sceneCreate(PluginData* app);
 void sensorEdit_scene(PluginData* app);
+void sensorEdit_sceneRemove(void);
 
+void sensorActions_sceneCreate(PluginData* app);
 void sensorActions_scene(PluginData* app);
-void sensorActionsCreate_scene(PluginData* app);
+void sensorActions_screneRemove(void);
 #endif

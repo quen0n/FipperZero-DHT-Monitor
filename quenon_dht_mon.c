@@ -227,7 +227,7 @@ bool DHTMon_sensors_load(void) {
     }
     //Построчное чтение файла
     char* line = strtok((char*)file_buf, "\n");
-    while(line != NULL) {
+    while(line != NULL && app->sensors_count < MAX_SENSORS) {
         if(line[0] != '#') {
             DHT_sensor s = {0};
             int type, port;

@@ -64,7 +64,6 @@ static void addSensor_enterCallback(void* context, uint32_t index) {
     }
     if(index == 3) {
         //Сохранение датчика
-        //TODO: проверить правильность данных датчика
         DHTMon_sensors_save();
         DHTMon_sensors_reload();
         view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_NONE);

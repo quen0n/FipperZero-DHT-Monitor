@@ -11,19 +11,19 @@ const GpioPin RX_14 = {.pin = LL_GPIO_PIN_7, .port = GPIOB};
 
 //Перечень достуных портов ввода/вывода
 static const GpioItem gpio_item[] = {
-    {2, &gpio_ext_pa7},
-    {3, &gpio_ext_pa6},
-    {4, &gpio_ext_pa4},
-    {5, &gpio_ext_pb3},
-    {6, &gpio_ext_pb2},
-    {7, &gpio_ext_pc3},
-    {10, &SWC_10},
-    {12, &SIO_12},
-    {13, &TX_13},
-    {14, &RX_14},
-    {15, &gpio_ext_pc1},
-    {16, &gpio_ext_pc0},
-    {17, &ibutton_gpio}};
+    {2, "2", &gpio_ext_pa7},
+    {3, "3", &gpio_ext_pa6},
+    {4, "4", &gpio_ext_pa4},
+    {5, "5", &gpio_ext_pb3},
+    {6, "6", &gpio_ext_pb2},
+    {7, "7", &gpio_ext_pc3},
+    {10, "10 (SWC)", &SWC_10},
+    {12, "12 (SIO)", &SIO_12},
+    {13, "13 (TX)", &TX_13},
+    {14, "14 (RX)", &RX_14},
+    {15, "15", &gpio_ext_pc1},
+    {16, "16", &gpio_ext_pc0},
+    {17, "17 (1W)", &ibutton_gpio}};
 
 //Данные плагина
 static PluginData* app;
@@ -32,7 +32,7 @@ uint8_t DHTMon_GPIO_to_int(const GpioPin* gpio) {
     if(gpio == NULL) return 255;
     for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
         if(gpio_item[i].pin->pin == gpio->pin && gpio_item[i].pin->port == gpio->port) {
-            return gpio_item[i].name;
+            return gpio_item[i].num;
         }
     }
     return 255;
@@ -40,7 +40,7 @@ uint8_t DHTMon_GPIO_to_int(const GpioPin* gpio) {
 
 const GpioPin* DHTMon_GPIO_form_int(uint8_t name) {
     for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
-        if(gpio_item[i].name == name) {
+        if(gpio_item[i].num == name) {
             return gpio_item[i].pin;
         }
     }
@@ -60,6 +60,16 @@ uint8_t DHTMon_GPIO_to_index(const GpioPin* gpio) {
         }
     }
     return 255;
+}
+
+const char* DHTMon_GPIO_getName(const GpioPin* gpio) {
+    if(gpio == NULL) return NULL;
+    for(uint8_t i = 0; i < GPIO_ITEMS; i++) {
+        if(gpio_item[i].pin->pin == gpio->pin && gpio_item[i].pin->port == gpio->port) {
+            return gpio_item[i].name;
+        }
+    }
+    return NULL;
 }
 
 void DHTMon_sensors_init(void) {

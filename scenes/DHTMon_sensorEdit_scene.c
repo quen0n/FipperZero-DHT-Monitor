@@ -7,21 +7,6 @@ static const char* const sensorsTypes[2] = {
     "DHT11",
     "DHT22",
 };
-static const char* const GPIOs[13] = {
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "10",
-    "12",
-    "13",
-    "14",
-    "15",
-    "16",
-    "17",
-};
 
 // /* ============== Добавление датчика ============== */
 static uint32_t addSensor_exitCallback(void* context) {
@@ -39,7 +24,7 @@ static void addSensor_sensorTypeChanged(VariableItem* item) {
 
 static void addSensor_GPIOChanged(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, GPIOs[index]);
+    variable_item_set_current_value_text(item, DHTMon_GPIO_getName(DHTMon_GPIO_from_index(index)));
     PluginData* app = variable_item_get_context(item);
     app->currentSensorEdit->GPIO = DHTMon_GPIO_from_index(index);
 }
@@ -105,8 +90,7 @@ void sensorEdit_scene(PluginData* app) {
     variable_item_set_current_value_index(
         app->item, DHTMon_GPIO_to_index(app->currentSensorEdit->GPIO));
     variable_item_set_current_value_text(
-        app->item, GPIOs[DHTMon_GPIO_to_index(app->currentSensorEdit->GPIO)]);
-
+        app->item, DHTMon_GPIO_getName(app->currentSensorEdit->GPIO));
     variable_item_list_add(variable_item_list, "Save", 1, NULL, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ADDSENSOR_MENU_VIEW);

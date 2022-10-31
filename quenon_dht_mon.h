@@ -48,7 +48,8 @@ typedef struct {
 } PluginEvent;
 
 typedef struct {
-    const uint8_t name;
+    const uint8_t num;
+    const char* name;
     const GpioPin* pin;
 } GpioItem;
 
@@ -109,6 +110,14 @@ const GpioPin* DHTMon_GPIO_from_index(uint8_t index);
  * @return index при успехе, 255 при ошибке
  */
 uint8_t DHTMon_GPIO_to_index(const GpioPin* gpio);
+
+/**
+ * @brief Получить имя GPIO в виде строки
+ * 
+ * @param gpio Искомый порт
+ * @return char* Указатель на строку с именем порта
+ */
+const char* DHTMon_GPIO_getName(const GpioPin* gpio);
 
 /* ================== Работа с датчиками ================== */
 /**

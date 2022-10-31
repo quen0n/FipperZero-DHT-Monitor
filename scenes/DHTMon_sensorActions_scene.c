@@ -48,7 +48,8 @@ static void sensorInfo_widget(PluginData* app) {
     widget_add_text_box_element(app->widget, 0, 0, 128, 23, AlignCenter, AlignCenter, str, false);
     snprintf(str, sizeof(str), "\e#Type:\e# %s", app->currentSensorEdit->type ? "DHT22" : "DHT11");
     widget_add_text_box_element(app->widget, 0, 0, 128, 47, AlignLeft, AlignCenter, str, false);
-    snprintf(str, sizeof(str), "\e#GPIO:\e# %d", DHTMon_GPIO_to_int(app->currentSensorEdit->GPIO));
+    snprintf(
+        str, sizeof(str), "\e#GPIO:\e# %s", DHTMon_GPIO_getName(app->currentSensorEdit->GPIO));
     widget_add_text_box_element(app->widget, 0, 0, 128, 72, AlignLeft, AlignCenter, str, false);
     view_set_previous_callback(widget_get_view(app->widget), infoWidget_exitCallback);
     view_dispatcher_switch_to_view(app->view_dispatcher, WIDGET_VIEW);
@@ -116,8 +117,8 @@ static void sensorDelete_widget(PluginData* app) {
     snprintf(
         delete_str,
         sizeof(delete_str),
-        "\e#GPIO:\e# %d",
-        DHTMon_GPIO_to_int(app->currentSensorEdit->GPIO));
+        "\e#GPIO:\e# %s",
+        DHTMon_GPIO_getName(app->currentSensorEdit->GPIO));
     widget_add_text_box_element(
         app->widget, 0, 0, 128, 72, AlignLeft, AlignCenter, delete_str, false);
     view_set_previous_callback(widget_get_view(app->widget), deleteWidget_exitCallback);

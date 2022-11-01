@@ -183,6 +183,8 @@ void sensorActions_sceneCreate(PluginData* app) {
     view_dispatcher_add_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW, view);
 }
 void sensorActions_scene(PluginData* app) {
+    //Сброс выбранного пункта в ноль
+    variable_item_list_set_selected_item(variable_item_list, 0);
     //Переключение на наш вид
     view_dispatcher_switch_to_view(app->view_dispatcher, SENSOR_ACTIONS_VIEW);
 }

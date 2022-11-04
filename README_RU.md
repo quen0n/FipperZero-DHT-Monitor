@@ -9,16 +9,7 @@
 - Автматическое включение питания 5В на выходе 1
 - Сохранение настроек на SD-карту
 ## Установка
-* Откройте командную строку и склонируйте прошивку
-```shell
-$ git clone --recursive https://github.com/flipperdevices/flipperzero-firmware.git
-```
-* Скопируйте содержимое репозитория DHT Monitor в папку `applications/plugins/dht_monitor`
-* Выполните компиляцию и загрузку плагина 
-```shell
-$ cd .\flipperzero-firmware\
-$ ./fbt COMPACT=1 DEBUG=0 launch_app APPSRC=applications\plugins\dht_monitor
-```
+Скопируйте содержимое репозитория в папку `applications/plugins/dht_monitor` и соберите проект. Прошейте FZ вместе с ресурсами. 
 Или воспользуйтесь плагином в составе [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware)
 ## Подключение
 |Пин датчика|Порт Flipper Zero|

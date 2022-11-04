@@ -1,14 +1,24 @@
 # DHT Monitor
-Плагин Fipper Zero для получения данных температуры и влажности воздуха с датчиков DHT11/DHT22/AM2302/AM2301
+Плагин Fipper Zero для получения данных температуры и влажности воздуха с датчиков DHT11/DHT22(AM2302)/AM2301
+
 ![UsageExample](https://sun9-27.userapi.com/impg/hkRTht9w6kq2lwdNi3fvKKxhQhif8Mc-lAVhGQ/HkgLO14EY0g.jpg?size=1914x480&quality=96&sign=b4363ea7edc74cb60e401f0c53876e98&type=album)
 ## Возможности
-- Поддержка датчиков DHT11/DHT22/AM2302/AM2301
+- Поддержка датчиков DHT11/DHT22(AM2302)/AM2301
 - Возможность работы с датчиками без обвязки
 - Свободный выбор портов ввода/вывода
 - Автматическое включение питания 5В на выходе 1
 - Сохранение настроек на SD-карту
 ## Установка
-Скопируйте содержимое репозитория в папку `applications/plugins/dht_monitor` и соберите проект. Прошейте FZ вместе с ресурсами. 
+* Откройте командную строку и склонируйте прошивку
+```shell
+$ git clone --recursive https://github.com/flipperdevices/flipperzero-firmware.git
+```
+* Скопируйте содержимое репозитория DHT Monitor в папку `applications/plugins/dht_monitor`
+* Выполните компиляцию и загрузку плагина 
+```shell
+$ cd .\flipperzero-firmware\
+$ ./fbt COMPACT=1 DEBUG=0 launch_app APPSRC=applications\plugins\dht_monitor
+```
 Или воспользуйтесь плагином в составе [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware)
 ## Подключение
 |Пин датчика|Порт Flipper Zero|

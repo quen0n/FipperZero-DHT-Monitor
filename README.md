@@ -1,6 +1,8 @@
 # FipperZero-DHT-Monitor
 Flipper Zero plugin for monitoring air temperature and humidity using DHT11 and DHT22 (AM2302/AM2301) sensors
 
+# No longer supported. Use [Unitemp](https://github.com/quen0n/unitemp-flipperzero)
+
 ![UsageExample](https://sun9-27.userapi.com/impg/hkRTht9w6kq2lwdNi3fvKKxhQhif8Mc-lAVhGQ/HkgLO14EY0g.jpg?size=1914x480&quality=96&sign=b4363ea7edc74cb60e401f0c53876e98&type=album)
 ## Capabilities
 - Support for DHT11/DHT22(AM2302)/AM2301 sensors
